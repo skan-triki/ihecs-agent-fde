@@ -1,0 +1,48 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "^exec$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/guard-exec.mjs",
+          "timeout": 10
+        }
+      ]
+    },
+    {
+      "matcher": "^(write|edit|apply_patch|notebook_edit)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/guard-edit.mjs",
+          "timeout": 10
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "^(write|edit|notebook_edit)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/post-edit-lint.mjs",
+          "timeout": 40
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/stop-gate.mjs",
+          "timeout": 240
+        }
+      ]
+    }
+  ]
+}

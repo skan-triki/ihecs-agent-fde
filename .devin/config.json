@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(pnpm dev)",
+      "Exec(pnpm lint)",
+      "Exec(pnpm lint:fix)",
+      "Exec(pnpm format)",
+      "Exec(pnpm format:check)",
+      "Exec(pnpm typecheck)",
+      "Exec(pnpm knip)",
+      "Exec(pnpm env:check)",
+      "Exec(pnpm check)",
+      "Exec(pnpm verify)",
+      "Exec(pnpm build)",
+      "Exec(git status)",
+      "Exec(git diff)",
+      "Exec(git log)",
+      "Exec(gh auth status)",
+      "Exec(vercel whoami)",
+      "Exec(vercel env ls)",
+      "Exec(vercel ls)",
+      "mcp__shadcn__*",
+      "mcp__next-devtools__*"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.development.local)",
+      "Read(.env.production.local)",
+      "Read(.env.test.local)",
+      "Write(.env)",
+      "Write(.env.local)",
+      "Write(.env.development.local)",
+      "Write(.env.production.local)",
+      "Write(pnpm-lock.yaml)",
+      "Exec(git push --force)",
+      "Exec(git push -f)",
+      "Exec(sudo)",
+      "Exec(vercel domains)"
+    ],
+    "ask": [
+      "mcp__vercel__*"
+    ]
+  }
+}

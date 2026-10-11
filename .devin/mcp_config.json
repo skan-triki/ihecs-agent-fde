@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "pnpm",
+      "args": ["exec", "shadcn", "mcp"]
+    },
+    "next-devtools": {
+      "command": "pnpm",
+      "args": ["dlx", "next-devtools-mcp@0.4.0"]
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com",
+      "transport": "http"
+    }
+  }
+}

@@ -1,0 +1,123 @@
+---
+name: nextjs-react-patterns
+description: Techniques de référence Next.js 16 (App Router) et React 19 du cours — à consulter AVANT de créer une page, un composant, un formulaire, une Server Action, un Route Handler ou un appel à une API d'IA.
+triggers:
+  - model
+  - user
+---
+
+# Patterns Next.js / React du starter IHECS
+
+> La version de Next.js installée peut différer de tes connaissances : en cas de doute, lis la doc locale dans `node_modules/next/dist/docs/` (ou utilise le MCP `next-devtools`).
+
+## Arborescence
+
+```
+src/
+├── app/                    # Routes (App Router) — uniquement routing, layout et composition
+│   ├── (marketing)/        # Groupes de routes (n'affectent pas l'URL)
+│   ├── api/<nom>/route.ts  # Route Handlers (webhooks, streaming IA, API publique)
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── ui/                 # shadcn/ui — généré par `pnpm exec shadcn add <composant>`
+│   └── <feature>/          # Composants métier, regroupés par fonctionnalité
+├── lib/                    # Logique pure, clients d'API, utilitaires (`cn`)
+├── server/                 # Code serveur uniquement (Server Actions, accès aux données, appels d'IA)
+└── env.ts                  # Variables d'environnement typées (source de vérité)
+```
+
+## Server vs Client Components
+
+- **Par défaut : Server Component** (async possible, accès direct aux données, zéro JS envoyé).
+- `"use client"` **seulement** pour : `useState`/`useReducer`, `useEffect`, gestionnaires d'événements, API navigateur, librairies client.
+- Pousse `"use client"` vers les **feuilles** : une page serveur qui contient un petit `<LikeButton />` client.
+- Passe des données sérialisables d'un Server à un Client Component (pas de fonctions, pas de classes).
+
+## Récupération de données
+
+```tsx
+// src/app/projects/page.tsx — Server Component
+import { getProjects } from "@/server/projects";
+
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+  return <ProjectList projects={projects} />;
+}
+```
+
+- Jamais de `useEffect(() => fetch(...))` pour des données initiales.
+- Requêtes parallèles avec `Promise.all`. Streaming avec `<Suspense>` + `loading.tsx`.
+
+## Mutations : Server Actions + Zod
+
+```ts
+// src/server/actions/create-project.ts
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+const schema = z.object({ name: z.string().trim().min(2).max(80) });
+
+export type ActionState = { ok: boolean; message: string };
+
+export async function createProject(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const parsed = schema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) {
+    return { ok: false, message: "Nom invalide (2 à 80 caractères)." };
+  }
+  // ... persistance
+  revalidatePath("/projects");
+  return { ok: true, message: "Projet créé." };
+}
+```
+
+```tsx
+// Formulaire client
+"use client";
+
+import { useActionState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { createProject } from "@/server/actions/create-project";
+
+export function CreateProjectForm() {
+  const [state, action, pending] = useActionState(createProject, { ok: false, message: "" });
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <Label htmlFor="name">Nom du projet</Label>
+      <Input id="name" name="name" required />
+      <Button type="submit" disabled={pending}>{pending ? "Création…" : "Créer"}</Button>
+      {state.message ? <p role="status" className="text-sm text-muted-foreground">{state.message}</p> : null}
+    </form>
+  );
+}
+```
+
+## Appels d'IA (Vercel AI Gateway)
+
+- Toujours **côté serveur** (Server Action ou Route Handler) ; la clé ne quitte jamais le serveur.
+- Clé via `env.AI_GATEWAY_API_KEY` (sur Vercel, l'authentification OIDC est automatique).
+- Pour du streaming vers l'UI : Route Handler `src/app/api/<nom>/route.ts` + SDK `ai` (`pnpm add ai @ai-sdk/react`).
+- Valide l'entrée utilisateur (Zod), limite la taille du prompt, gère les erreurs et les timeouts.
+
+## Pages et métadonnées
+
+- Chaque page exporte `metadata` (ou `generateMetadata` pour du dynamique).
+- Ajoute `loading.tsx`, `error.tsx` (Client Component) et `not-found.tsx` au niveau pertinent.
+- Navigation interne : `<Link href="/...">` de `next/link`. Images : `next/image` avec `alt` explicite.
+- Paramètres dynamiques : `params` et `searchParams` sont des **Promises** — `const { id } = await params;`.
+
+## React — règles d'or
+
+- Pas d'état dérivé : calcule pendant le rendu au lieu de `useState` + `useEffect`.
+- Un composant = une responsabilité ; > 150 lignes → découpe.
+- Props typées avec `type Props = { ... }` ; pas de `any`.
+- Clés de liste = identifiant stable (jamais l'index).
+- Accessibilité : chaque champ a un `<Label htmlFor>`, chaque bouton a un texte ou `aria-label`.

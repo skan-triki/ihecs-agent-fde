@@ -1,0 +1,6 @@
+# Sécurité supply-chain : refuse toute version publiée il y a moins de 7 jours (en minutes).
+minimumReleaseAge: 10080
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
