@@ -16,20 +16,20 @@ Template prêt à l'emploi pour construire et livrer un MVP d'application IA : N
 
 ## Démarrage rapide
 
-```bash
-# Prérequis : Node >= 24, pnpm >= 10, GitHub CLI (gh), Vercel CLI
-pnpm install
-cp .env.example .env.local    # Windows : copy .env.example .env.local
-pnpm dev                      # http://localhost:3000
-```
+**Rien à installer à la main** : dès votre premier message dans le chat, l'agent détecte l'état de votre machine (outils, dépendances, déploiement) et vous propose l'étape suivante.
 
-Puis, avec votre agent IA, lancez **une seule fois** :
+| Situation détectée                                                  | L'agent fait quoi                                                                                                                                                      |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Un outil manque (Node, pnpm, Git, GitHub CLI, Vercel CLI, éditeur…) | Il lance `/install-tools` : il **installe tout lui-même** (winget/brew), vous n'avez qu'à approuver — seuls `gh auth login` et `vercel login` restent à faire par vous |
+| Outils OK, projet pas encore sur GitHub/Vercel                      | Il propose `/bootstrap` : dépôt GitHub, projet Vercel, variables, déploiement `*.vercel.app`, vérification                                                             |
+| Tout est prêt                                                       | Il répond à votre demande (`pnpm dev` pour coder sur http://localhost:3000)                                                                                            |
+
+Vous pouvez aussi tout déclencher explicitement :
 
 ```
-/bootstrap
+/install-tools   # installe et configure tout l'environnement
+/bootstrap       # GitHub + Vercel + variables + premier déploiement
 ```
-
-Il installe, crée le dépôt GitHub, le projet Vercel, synchronise les variables d'environnement et vérifie que tout fonctionne.
 
 ## Le workflow étudiant (2 commandes à retenir)
 
@@ -38,7 +38,7 @@ Il installe, crée le dépôt GitHub, le projet Vercel, synchronise les variable
 | `/quality-check` | Pendant le développement       | Audit qualité indépendant : contrôles auto + relecture Next/React/Tailwind/shadcn             |
 | `/ship`          | Pour livrer une fonctionnalité | Qualité → corrections → build & routes → commit conventionnel → branche → PR → preview Vercel |
 
-Également utiles : `/setup-github`, `/setup-vercel`, `/env-vars ajouter <NOM>`, `/env-vars audit`, `/verify`, `/design-system`, `/nextjs-react-patterns`, `/bootstrap`.
+Également utiles : `/install-tools`, `/setup-github`, `/setup-vercel`, `/env-vars ajouter <NOM>`, `/env-vars audit`, `/verify`, `/design-system`, `/nextjs-react-patterns`, `/bootstrap`.
 
 ## Commandes manuelles
 
@@ -67,18 +67,18 @@ Règles : une clé secrète ne prend **jamais** le préfixe `NEXT_PUBLIC_` ; dan
 
 ## Garde-fous automatiques (ce qui vous protège)
 
-| Où           | Garde-fou                                                                                                                                                                                                  | Effet                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Éditeur      | VSCode : ESLint + Prettier + Tailwind IntelliSense (extensions recommandées)                                                                                                                               | Erreurs visibles, format et tri des classes au save                         |
-| Lint         | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss, imports triés                                                                                   | `--max-warnings=0` : le moindre warning casse tout                          |
-| Commits      | husky + lint-staged + commitlint (Conventional Commits)                                                                                                                                                    | Un commit mal formatté ou un mauvais message est rejeté                     |
-| Push         | hook `pre-push` : types + code mort                                                                                                                                                                        | Impossible de pousser du code cassé                                         |
-| Agent IA     | `.devin/hooks.v1.json` : bloque npm/npx, force-push, `--no-verify`, `.env*`, `eslint-disable`, modifications des garde-fous ; relint et reformatte chaque fichier édité ; vérifie lint+types avant l'arrêt | L'agent ne peut pas contourner les règles                                   |
-| CI (GitHub)  | `.github/workflows/ci.yml` : `pnpm verify` + commitlint sur les PR                                                                                                                                         | Toute PR non conforme reste rouge                                           |
-| Supply chain | pnpm `minimumReleaseAge: 7 jours`, lockfile figé en CI, Dependabot avec cooldown 7 jours, actions GitHub épinglées par SHA                                                                                 | Les dépendances fraîchement publiées (risque de supply chain) sont refusées |
-| Sécurité     | `.env*` gitignorés, `process.env` restreint, scan de secrets, `poweredByHeader` désactivé                                                                                                                  | Pas de fuite de secrets                                                     |
+| Où           | Garde-fou                                                                                                                                                                                                                                                                                                                    | Effet                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Éditeur      | VSCode : ESLint + Prettier + Tailwind IntelliSense (extensions recommandées)                                                                                                                                                                                                                                                 | Erreurs visibles, format et tri des classes au save                         |
+| Lint         | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss, imports triés                                                                                                                                                                                                     | `--max-warnings=0` : le moindre warning casse tout                          |
+| Commits      | husky + lint-staged + commitlint (Conventional Commits)                                                                                                                                                                                                                                                                      | Un commit mal formatté ou un mauvais message est rejeté                     |
+| Push         | hook `pre-push` : types + code mort                                                                                                                                                                                                                                                                                          | Impossible de pousser du code cassé                                         |
+| Agent IA     | `.devin/hooks.v1.json` : à chaque session, un état onboarding est sondé (outils, repo, Vercel) pour guider l'étudiant dès le 1er message ; bloque npm/npx, force-push, `--no-verify`, `.env*`, `eslint-disable`, modifications des garde-fous ; relint et reformatte chaque fichier édité ; vérifie lint+types avant l'arrêt | L'agent ne peut pas contourner les règles                                   |
+| CI (GitHub)  | `.github/workflows/ci.yml` : `pnpm verify` + commitlint sur les PR                                                                                                                                                                                                                                                           | Toute PR non conforme reste rouge                                           |
+| Supply chain | pnpm `minimumReleaseAge: 7 jours`, lockfile figé en CI, Dependabot avec cooldown 7 jours, actions GitHub épinglées par SHA                                                                                                                                                                                                   | Les dépendances fraîchement publiées (risque de supply chain) sont refusées |
+| Sécurité     | `.env*` gitignorés, `process.env` restreint, scan de secrets, `poweredByHeader` désactivé                                                                                                                                                                                                                                    | Pas de fuite de secrets                                                     |
 
-Fichiers verrouillés (réservés à l'enseignant) : `eslint.config.mjs`, `tsconfig.json`, `.husky/*`, `.github/*`, `scripts/hooks/*`, `.devin/hooks.v1.json`, `pnpm-workspace.yaml`, `knip.json`, `lint-staged.config.mjs`.
+Fichiers verrouillés (réservés à l'enseignant) : `eslint.config.mjs`, `tsconfig.json`, `.husky/*`, `.github/*`, `scripts/hooks/*`, `.devin/agents/*`, `.devin/skills/*`, `.devin/hooks.v1.json`, `pnpm-workspace.yaml`, `knip.json`, `lint-staged.config.mjs`.
 
 ## Structure du projet
 

@@ -44,5 +44,17 @@
         }
       ]
     }
+  ],
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/session-onboarding.mjs",
+          "timeout": 15
+        }
+      ]
+    }
   ]
 }

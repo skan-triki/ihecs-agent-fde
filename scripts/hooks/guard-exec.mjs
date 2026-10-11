@@ -19,12 +19,27 @@ try {
 const command = String(payload.tool_input?.command ?? "");
 if (!command) process.exit(0);
 
+// npm : autorisé UNIQUEMENT pour les installations globales d'outils (-g) et
+// l'affichage de version. Le reste (npm install local, npm run…) reste interdit :
+// le projet utilise pnpm.
+const npmSegmentForbidden = command.split(/&&|\|\||;|\||&/).some((segment) => {
+  const seg = segment.trim();
+  if (!/^npm\b/.test(seg)) return false;
+  const globalInstall = /^npm\s+(install|i)\b[^\n]*\s(-g|--global)\b/;
+  const versionOnly = /^npm\s+(-v|--version)$/;
+  return !(globalInstall.test(seg) || versionOnly.test(seg));
+});
+
 const rules = [
-  {
-    re: /(^|[\s(&|;])npm(\s|exec|install|i|add|run|create|publish|ci)/,
-    reason:
-      "npm est interdit dans ce cours : utilisez pnpm (ex. `pnpm add`, `pnpm dev`).",
-  },
+  ...(npmSegmentForbidden
+    ? [
+        {
+          re: /.*/,
+          reason:
+            "npm est interdit pour ce projet : utilisez pnpm (ex. `pnpm add`, `pnpm dev`). Seules les installations globales d'outils (`npm i -g <outil>`) sont tolérées.",
+        },
+      ]
+    : []),
   {
     re: /(^|[\s(&|;])yarn(\s|\b)/,
     reason:

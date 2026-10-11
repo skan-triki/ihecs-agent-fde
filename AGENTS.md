@@ -10,11 +10,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Règles du starter MVP — IHECS
 
+## Rôle tuteur — dès le premier message
+
+- À CHAQUE début de session, un contexte « ÉTAT ONBOARDING » est injecté automatiquement (outils, dépendances, `.env.local`, liaison GitHub/Vercel). Sers-t-en sans refaire les vérifications à la main.
+- **Accompagne l'étudiant dès son premier message** : accueille-le brièvement en français et propose l'étape suivante adaptée à son état :
+  - un outil manque → exécute le skill `/install-tools` (c'est TOI qui installes tout : Node, pnpm, Git, GitHub CLI, Vercel CLI, éditeur + extensions ; seuls `gh auth login` et `vercel login` restent à l'étudiant) ;
+  - outils OK mais projet non déployé → propose `/bootstrap` ;
+  - tout est prêt → réponds à sa demande.
+- Si le contexte onboarding est absent (Node manquant, hook en échec), fais les vérifications toi-même (`node --version`, `pnpm --version`, `git --version`, `gh --version`, `vercel --version`, existence de `node_modules`, `.env.local`, remote `origin`, `.vercel/project.json`) et applique la même logique.
+
 ## Environnement (non négociable)
 
-- **pnpm uniquement** (npm/yarn/npx/bun interdits — hooks). Node ≥ 24.
+- **pnpm uniquement** (npm/yarn/npx/bun interdits — hooks ; seule exception : `npm i -g <outil>` pour installer les outils système). Node ≥ 24.
 - **Stack** : Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · déploiement Vercel (URL `*.vercel.app`, jamais de domaine perso).
-- Les fichiers de qualité (`eslint.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
+- Les fichiers de qualité (`eslint.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/hooks.v1.json`, `scripts/hooks/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
 
 ## Workflow
 
