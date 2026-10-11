@@ -20,8 +20,8 @@ La référence complète des vérifications du projet est `.check/VERIFICATION.m
 3. **Routes à tester** — liste les pages et route handlers : fichiers `page.tsx` et `route.ts` sous `src/app/` (ignore les segments dynamiques sans valeur d'exemple, signale-les).
 4. **Test du serveur de production local** :
    - Démarre `pnpm start --port 3123` en arrière-plan.
-   - Attends qu'il réponde, puis pour chaque route statique :
-     `node -e "fetch('http://localhost:3123'+process.argv[1]).then(async r=>{const t=await r.text();console.log(r.status,t.length);process.exit(r.ok?0:1)})" /chemin`
+   - Attends qu'il réponde, puis teste toutes les routes statiques en une commande :
+     `pnpm routes:check / /autre-route` (code 0 seulement si toutes répondent en 2xx)
    - Une route qui ne renvoie pas 2xx = NO-GO.
    - Arrête le serveur à la fin (kill du process que tu as lancé).
 5. **Déploiement Vercel** (si `.vercel/project.json` existe) :
@@ -29,8 +29,8 @@ La référence complète des vérifications du projet est `.check/VERIFICATION.m
    - Teste l'URL `https://<projet>.vercel.app` (HTTP 200 attendu).
    - Si `vercel` n'est pas connecté, signale-le sans bloquer le verdict local.
 6. **Contrôles de sécurité rapides** :
-   - `git ls-files | node -e "const f=require('fs').readFileSync(0,'utf8').split('\n');const bad=f.filter(x=>/(^|\/)\.env(?!\.example$)/.test(x));console.log(bad.join('\n')||'aucun');process.exit(bad.length?1:0)"` (aucun fichier `.env` réel ne doit être suivi).
-   - `git grep -nE "(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY)"` doit être vide.
+   - `pnpm secrets:check` (aucun fichier `.env` réel suivi, aucun secret reconnaissable dans le code).
+   - `pnpm rules:check` (règles du cours identiques au template officiel).
 
 ## Rapport final (format imposé)
 

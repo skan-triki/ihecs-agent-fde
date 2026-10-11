@@ -33,7 +33,7 @@ Conventions :
 - Ne passe jamais une valeur secrète dans une commande que tu exécutes. Pour une valeur secrète, donne à l'étudiant la commande exacte à lancer LUI-MÊME :
   `vercel env add <NOM> production` (puis `preview`, puis `development`) — la CLI demande la valeur de façon masquée.
 - Une valeur **publique non sensible** (ex. `NEXT_PUBLIC_APP_NAME`) peut être ajoutée par toi :
-  `node -e "process.stdout.write('valeur')" | vercel env add <NOM> production`.
+  `pnpm env:public <NEXT_PUBLIC_NOM> <valeur>` (ajoute la variable aux trois environnements ; refuse tout nom qui n'est pas `NEXT_PUBLIC_…`).
 
 ## Modes
 

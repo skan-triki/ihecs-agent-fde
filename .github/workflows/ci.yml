@@ -30,6 +30,15 @@ jobs:
       - name: Installation (lockfile figé)
         run: pnpm install --frozen-lockfile
 
+      - name: Intégrité des règles du cours
+        run: pnpm rules:check
+
+      - name: Secrets
+        run: pnpm secrets:check
+
+      - name: Garde-fous de l'agent (contournements bloqués)
+        run: pnpm guards:test
+
       - name: Vérification complète
         run: pnpm verify
 

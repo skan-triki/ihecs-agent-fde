@@ -20,6 +20,6 @@ Enchaîne strictement :
 7. **CI** — `gh pr checks --watch`. Tant qu'un contrôle est rouge : lis le journal (`gh run view --log-failed`), corrige, recommence à l'étape 2. Ne passe jamais à la suite avec une CI rouge ou en cours.
 8. **Preview** — donne à l'étudiant le lien de preview Vercel (commentaire du bot Vercel dans la PR) et demande-lui de tester le parcours clé de `.concept/MVP.md`.
 9. **Fusion** — uniquement avec l'accord explicite de l'étudiant ET la CI verte : `gh pr merge --squash --delete-branch`, puis `git switch main && git pull`.
-10. **Production** — attends le déploiement : `vercel ls --prod` jusqu'à `Ready` (si Vercel est lié), puis teste l'URL `https://<projet>.vercel.app` (HTTP 200 attendu, même commande `node -e "fetch(...)"` que `/verify`). Échec → explique-le à l'étudiant, ne dis pas « livré ».
+10. **Production** — attends le déploiement : `vercel ls --prod` jusqu'à `Ready` (si Vercel est lié), puis teste l'URL `https://<projet>.vercel.app` (HTTP 200 attendu : `pnpm routes:check https://<projet>.vercel.app`). Échec → explique-le à l'étudiant, ne dis pas « livré ».
 
 Rapport final : branche, commit, lien de PR, état de la CI, URL de preview, URL de production + code HTTP, verdicts qualité et vérification. « Livré » seulement si la production répond 200.

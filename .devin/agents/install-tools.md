@@ -74,9 +74,8 @@ Si TOUT est présent, passe directement à l'étape 5 (extensions), puis 6 (logi
 
 ## Étape 3 — Dernier kilomètre Node/pnpm
 
-- Vérifie que `pnpm install` a été exécuté : `node -e "console.log(require('fs').existsSync('node_modules'))"`.
-- Si `false` : `pnpm install`.
-- Si `.env.local` absent : `node -e "require('fs').copyFileSync('.env.example','.env.local')"` puis informe l'étudiant qu'il peut y mettre ses valeurs.
+- Lance `pnpm install` (sans effet si tout est déjà installé).
+- Lance `pnpm env:init` : crée `.env.local` depuis `.env.example` s'il n'existe pas (ne l'écrase jamais), puis informe l'étudiant qu'il peut y mettre ses valeurs.
 
 ## Étape 4 — Logins (seule partie interactive, guidée)
 

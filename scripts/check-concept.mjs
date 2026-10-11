@@ -7,9 +7,19 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
+import { isTemplateRepo } from "./lib/template.mjs";
+
 const args = process.argv.slice(2);
 const quiet = args.includes("--quiet");
 const staged = args.includes("--staged");
+
+// Build Vercel / CI : le template n'a pas de concept, seuls les dépôts
+// étudiants sont contrôlés.
+if (args.includes("--skip-template") && isTemplateRepo()) {
+  if (!quiet)
+    console.log("✓ Concept MVP : dépôt modèle (contrôle non applicable).");
+  process.exit(0);
+}
 
 // Bypass enseignant : identique à celui de guard-edit. Le concept reste honnête
 // via `pnpm concept:check` (sans --staged), mais un mainteneur du template peut

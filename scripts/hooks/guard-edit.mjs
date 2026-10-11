@@ -89,16 +89,22 @@ const inProject =
 const normNoDrive = norm.replace(/^[A-Za-z]:\//, "");
 const relPath = inProject ? relFromCwd : normNoDrive;
 
+// Zéro tolérance : l'agent n'écrit QUE dans le projet (pas dans le dossier
+// utilisateur, la config de l'IDE, un dossier temporaire…).
+if (target && !inProject) {
+  block(
+    "L'agent n'écrit que dans le dossier du projet : écrire ailleurs (dossier utilisateur, réglages de l'IDE, fichiers temporaires…) est interdit.",
+  );
+}
+
 const isProtected =
   protectedFiles.has(base) ||
   protectedFiles.has(relPath) ||
-  /^scripts\//.test(relPath) ||
-  /^\.check\//.test(relPath) ||
-  /\.github\/workflows\/[^/]+$/.test(relPath) ||
-  /^\.devin\/(agents|skills|workflows|mcp_config\.json|config\.json)\//.test(
+  /^(package|vercel)\.json$/.test(relPath) ||
+  /^\.vercelignore$/.test(relPath) ||
+  /^(scripts|\.check|\.github|\.devin|\.husky|\.git|node_modules)\//.test(
     relPath,
-  ) ||
-  /^\.devin\/(config\.json|mcp_config\.json|hooks(\.v1)?\.json)$/.test(relPath);
+  );
 
 if (isProtected) {
   block(
@@ -132,6 +138,17 @@ if (/^src\//.test(relPath)) {
 // Suppressions de diagnostics interdites.
 const suppression =
   /\/\/\s*eslint-disable|\/\*\s*eslint-disable|\/\/\s*@ts-ignore|\/\/\s*@ts-nocheck|\/\/\s*@ts-expect-error\b/;
+// Options qui désactivent un contrôle (build sans types/lint, env non validé).
+if (
+  /ignoreBuildErrors|ignoreDuringBuilds|skipValidation|SKIP_ENV_VALIDATION/.test(
+    addedText,
+  )
+) {
+  block(
+    "Désactiver un contrôle (ignoreBuildErrors, ignoreDuringBuilds, skipValidation) est interdit : corrige la cause de l'erreur.",
+  );
+}
+
 if (suppression.test(addedText)) {
   block(
     "Désactiver un diagnostic (eslint-disable, @ts-ignore, @ts-expect-error) est interdit : corrigez la cause. Une exception validée doit être documentée (`-- justification`) et validée par l'enseignant.",

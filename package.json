@@ -19,8 +19,16 @@
     "concept:check": "node scripts/check-concept.mjs",
     "env:check": "node scripts/check-env.mjs",
     "diagnostic": "node scripts/hooks/session-onboarding.mjs --human --strict",
+    "env:init": "node scripts/init-env.mjs",
+    "env:public": "node scripts/vercel-env-public.mjs",
+    "routes:check": "node scripts/http-check.mjs",
+    "secrets:check": "node scripts/secrets-check.mjs",
+    "rules:check": "node scripts/check-integrity.mjs",
+    "rules:sync": "node scripts/sync-rules.mjs",
+    "guards:test": "node scripts/test-guards.mjs",
     "check": "pnpm env:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip",
     "verify": "pnpm check && pnpm build",
+    "build:vercel": "node scripts/check-concept.mjs --skip-template && pnpm rules:check && pnpm secrets:check && pnpm verify",
     "prepare": "husky"
   },
   "dependencies": {

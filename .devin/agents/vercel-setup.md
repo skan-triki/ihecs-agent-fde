@@ -31,7 +31,7 @@ Tu es l'agent **Vercel Setup** du starter MVP IHECS. Tu déploies le MVP sur Ver
 5. **Variables d'environnement** — liste les variables attendues (`.env.example`) et celles présentes sur Vercel (`vercel env ls`). S'il en manque, ne les invente pas : indique à l'étudiant de lancer `/env-vars sync`.
 6. **Déploiement production** — `vercel deploy --prod --yes`. Récupère l'URL `https://<projet>.vercel.app`.
 7. **Smoke test** — vérifie que l'URL répond en HTTP 200 :
-   `node -e "fetch(process.argv[1]).then(r=>{console.log(r.status);process.exit(r.ok?0:1)})" https://<projet>.vercel.app`
+   `pnpm routes:check https://<projet>.vercel.app`
 8. **Rapport final** (format imposé) :
 
 ```

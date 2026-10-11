@@ -51,17 +51,18 @@ Ces garde-fous tournent automatiquement — il faut les connaître pour comprend
 | Avant que l'agent conclue son tour       | hook `stop-gate` : lint + types sur les fichiers modifiés, et verrou concept                                                           | Empêche de conclure sur du code cassé    |
 | `git commit`                             | hook `pre-commit` : `concept:check --staged` (si `src/` touché) + `lint-staged` (ESLint `--fix` + Prettier sur les fichiers du commit) | Commit refusé si non conforme            |
 | `git commit`                             | hook `commit-msg` : commitlint                                                                                                         | Message mal formé = commit refusé        |
-| `git push`                               | hook `pre-push` : `pnpm check` complet (env, format, lint, types, code mort)                                                           | Impossible de pousser du code cassé      |
-| Sur GitHub (push `main` / PR)            | CI `.github/workflows/ci.yml` : `pnpm verify` + concept validé (dépôts étudiants) + commitlint sur les PR                              | Une PR rouge ne se fusionne pas          |
+| `git push`                               | hook `pre-push` : `pnpm check` + `pnpm rules:check` + `pnpm secrets:check`                                                             | Impossible de pousser du code cassé      |
+| Sur GitHub (push `main` / PR)            | CI : `rules:check` + `secrets:check` + `pnpm verify` + concept validé (dépôts étudiants) + commitlint sur les PR                       | Une PR rouge ne se fusionne pas          |
+| Mise en ligne Vercel                     | `vercel.json` → `pnpm build:vercel` : concept + règles + secrets + `pnpm verify`                                                       | Code non conforme jamais en ligne        |
 
 ## 4. Le test manuel avant de livrer (fonctionnel)
 
 La preuve qu'un code compile ne suffit pas : il faut qu'il **fonctionne**.
 
 1. `pnpm build` puis `pnpm start --port 3123` (serveur de production local).
-2. Tester chaque page/routte en HTTP — elle doit répondre **2xx** :
+2. Tester chaque page/route en HTTP — elle doit répondre **2xx** :
    ```bash
-   node -e "fetch('http://localhost:3123'+process.argv[1]).then(async r=>{console.log(process.argv[1],r.status);process.exit(r.ok?0:1)})" /
+   pnpm routes:check / /autre-route
    ```
 3. Tester le parcours clé décrit dans `.concept/MVP.md` (section 4).
 4. Si Vercel est lié : `vercel ls` → dernier déploiement `Ready`, et l'URL `https://<projet>.vercel.app` répond 200.
@@ -69,16 +70,32 @@ La preuve qu'un code compile ne suffit pas : il faut qu'il **fonctionne**.
 
 L'agent **verification** (skill `/verify`) applique exactement cette procédure et conclut par un verdict **GO / NO-GO** appuyé de preuves.
 
-## 5. Interdictions absolues (contourner = tricher)
+## 5. Zéro tolérance : ce qui est bloqué mécaniquement
 
-Ces contournements sont **bloqués mécaniquement** par les hooks — et surtout, ils détruisent la protection offerte à l'étudiant :
+**Commandes terminal de l'agent : liste blanche.** Seules sont autorisées les commandes du cours : scripts `pnpm` du projet, `pnpm add/remove/install`, `pnpm exec` (shadcn, eslint, prettier, tsc, next, knip, commitlint), `git` courant (sans options dangereuses), `gh` (PR, CI, dépôt, API en lecture), `vercel` (sans build local, domaine ni promotion), installation des outils (winget/brew/corepack/`npm i -g pnpm|vercel`), `node scripts/…` officiels, et la lecture de fichiers du projet. **Tout le reste est refusé**, notamment :
 
-- `git commit --no-verify` / `git push --no-verify` — contourner les hooks git.
-- `eslint-disable`, `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error` — masquer un diagnostic au lieu de le corriger.
-- `git push --force`, `git reset --hard`, `git checkout --` — détruire du travail ou l'historique.
-- `npm` / `yarn` / `npx` / `bun` pour le projet — seul `pnpm` est autorisé (exception : `npm i -g <outil>` pour installer un outil système).
-- Écrire ou lire directement un `.env*` de secrets.
-- Modifier les fichiers de garde-fous (`AGENTS.md`, `eslint.config.mjs`, `.husky/`, `.github/`, `scripts/`, `.devin/`, et **ce dossier `.check/`**) — réservé à l'enseignant.
+- `git commit -n` / `--no-verify`, `HUSKY=0`, `core.hooksPath`, `git -c …` — couper les hooks git ;
+- `node -e`, `python`, `bash -c`, `powershell -c`, programmes lancés par chemin — exécuter du code arbitraire ;
+- redirections vers un fichier (`>`, `>>`), `rm`, `sed`, `tee`, `Set-Content`, substitution `$(…)` — écrire des fichiers sans passer par l'outil d'édition ;
+- `git push --force`, `git reset --hard`, `git checkout -- …`, `git restore --source`, `git rebase -i/--exec` — détruire du travail ;
+- `git push` direct sur `main` (sauf tout premier envoi) — tout passe par une PR ;
+- `gh pr merge` tant que la CI de la PR n'est pas entièrement verte, `--admin` ;
+- `vercel --prebuilt`, `vercel build`, `vercel promote`, domaines ;
+- `npm`/`npx`/`yarn`/`bun`, `pnpm dlx`, `pnpm pkg`, `pnpm --config.*` ;
+- toute mention de `.env*`, de `IHECS_TEACHER_BYPASS` ou une variable d'environnement en préfixe.
+
+**Fichiers (outil d'édition) :** écriture hors du projet, dans `.git/`, `node_modules/`, et dans toutes les règles (`AGENTS.md`, `package.json`, `vercel.json`, configs de qualité, `.husky/`, `.github/`, `scripts/`, `.devin/`, **ce dossier `.check/`**) ; `eslint-disable`, `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error`, `ignoreBuildErrors`, `skipValidation` ; `src/` tant que le concept n'est pas validé.
+
+**Filets de sécurité indépendants de l'agent** (ils s'appliquent aussi aux modifications faites à la main) :
+
+| Où                           | Contrôle                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `git commit`                 | concept (si `src/`), lint-staged, commitlint                                                                                                          |
+| `git push`                   | `pnpm check` + `pnpm rules:check` (règles identiques au template officiel) + `pnpm secrets:check`                                                     |
+| CI GitHub                    | `rules:check`, `secrets:check`, `pnpm verify`, concept (dépôts étudiants), commitlint                                                                 |
+| Build Vercel (`vercel.json`) | concept + `rules:check` + `secrets:check` + `pnpm verify` : **un code non conforme n'est jamais mis en ligne**, même si tout le reste a été contourné |
+
+Règles modifiées par erreur ? `pnpm rules:sync` remet les versions officielles.
 
 ## 6. Si un contrôle échoue : le protocole
 
@@ -94,6 +111,7 @@ avant de coder        →  /concept  (verrou tant que non validé)
 pendant le code       →  pnpm dev   + contrôles auto à chaque fichier
 avant de conclure     →  pnpm check (100 %)
 avant de livrer       →  pnpm verify + test des routes  (= /ship)
-au commit / push      →  hooks git (concept, lint-staged, commitlint, types)
-après le push         →  gh run watch → CI verte
+au commit / push      →  hooks git (concept, lint-staged, commitlint, check, règles, secrets)
+après le push         →  gh pr checks --watch → CI verte → fusion
+mise en ligne         →  build Vercel = concept + règles + secrets + verify
 ```

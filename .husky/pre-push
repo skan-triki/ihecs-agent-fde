@@ -1,1 +1,1 @@
-pnpm check
+pnpm check && pnpm rules:check && pnpm secrets:check

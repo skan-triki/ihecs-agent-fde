@@ -1,0 +1,101 @@
+// Intégrité des règles du cours : dans un dépôt étudiant, les fichiers de
+// garde-fous (hooks, CI, agents, skills, configs de qualité…) doivent être
+// IDENTIQUES à ceux du template officiel. Toute modification, suppression ou
+// ajout est refusé. Utilisé par le pre-push, la CI et le build Vercel.
+// Réparation : `pnpm rules:sync` (récupère les versions officielles).
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+import {
+  isTemplateRepo,
+  PACKAGE_RULE_KEYS,
+  RULE_DIRS,
+  RULE_FILES,
+  TEMPLATE_URL,
+} from "./lib/template.mjs";
+
+if (isTemplateRepo()) {
+  console.log(
+    "✓ Intégrité des règles : dépôt modèle (contrôle non applicable).",
+  );
+  process.exit(0);
+}
+
+const git = (args) =>
+  spawnSync("git", args, {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    shell: process.platform === "win32",
+  });
+
+const fetched = git(["fetch", "--depth=1", "--no-tags", TEMPLATE_URL, "main"]);
+if (fetched.status !== 0) {
+  console.error(
+    "✗ Intégrité des règles : impossible de récupérer le template officiel (connexion internet ?). Contrôle refusé par sécurité.",
+  );
+  process.exit(1);
+}
+
+const norm = (s) => s.replaceAll("\r\n", "\n");
+const official = (path) => {
+  const r = git(["show", `FETCH_HEAD:${path}`]);
+  return r.status === 0 ? norm(String(r.stdout)) : null;
+};
+const local = (path) =>
+  existsSync(path) ? norm(readFileSync(path, "utf8")) : null;
+
+// Fichiers locaux d'un dossier (hors fichiers générés et non versionnés).
+const IGNORED = /(^|\/)(\.DS_Store|Thumbs\.db)$|^\.husky\/_\//;
+const walk = (dir) => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name).replaceAll("\\", "/");
+    return statSync(p).isDirectory() ? walk(p) : [p];
+  });
+};
+
+const errors = [];
+
+for (const dir of RULE_DIRS) {
+  const tree = git(["ls-tree", "-r", "--name-only", "FETCH_HEAD", "--", dir]);
+  const expected = new Set(String(tree.stdout).split(/\r?\n/).filter(Boolean));
+  const present = new Set(walk(dir).filter((p) => !IGNORED.test(p)));
+  for (const p of expected) {
+    if (!present.has(p)) errors.push(`supprimé : ${p}`);
+    else if (official(p) !== local(p)) errors.push(`modifié : ${p}`);
+  }
+  for (const p of present) {
+    if (!expected.has(p)) errors.push(`ajouté (non officiel) : ${p}`);
+  }
+}
+
+for (const p of RULE_FILES) {
+  const o = official(p);
+  const l = local(p);
+  if (o === null && l === null) continue;
+  if (o !== l) errors.push(`${l === null ? "supprimé" : "modifié"} : ${p}`);
+}
+
+const pick = (json) => {
+  const obj = JSON.parse(json);
+  return JSON.stringify(PACKAGE_RULE_KEYS.map((k) => obj[k] ?? null));
+};
+const oPkg = official("package.json");
+const lPkg = local("package.json");
+if (!oPkg || !lPkg || pick(oPkg) !== pick(lPkg)) {
+  errors.push(`modifié : package.json (${PACKAGE_RULE_KEYS.join(", ")})`);
+}
+
+if (errors.length > 0) {
+  console.error(
+    "✗ Intégrité des règles du cours : fichiers non conformes au template officiel :",
+  );
+  for (const e of errors) console.error(`  - ${e}`);
+  console.error(
+    "\nLes règles du cours ne se modifient pas. Pour revenir aux versions officielles : `pnpm rules:sync`.",
+  );
+  process.exit(1);
+}
+
+console.log("✓ Intégrité des règles : conforme au template officiel.");
