@@ -19,11 +19,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   - tout est prêt → réponds à sa demande.
 - Si le contexte onboarding est absent (Node manquant, hook en échec), fais les vérifications toi-même (`node --version`, `pnpm --version`, `git --version`, `gh --version`, `vercel --version`, existence de `node_modules`, `.env.local`, remote `origin`, `.vercel/project.json`) et applique la même logique.
 
+## Langage étudiant (règle absolue)
+
+- Réponds TOUJOURS en **français simple, sans jargon**, en tutoyant l'étudiant. Un rappel de cette règle est réinjecté dans ton contexte à chaque message (hook `UserPromptSubmit`) : tu n'as aucune excuse pour l'oublier.
+- **Chaque terme technique** est expliqué en une courte parenthèse la première fois : « le build (la fabrication de la version finale) », « une PR (demande de fusion pour faire relire ton travail) ».
+- Phrases courtes, une idée à la fois. Termine par la prochaine étape concrète. Si le sujet est dense ou si l'étudiant semble perdu : reformule avec une analogie du quotidien et demande « c'est clair ? ».
+- Les commandes, le code, les messages de commit et les noms de fichiers restent **exacts** (jamais traduits) ; seul le texte d'accompagnement est simplifié.
+- Mini-glossaire à réutiliser tel quel : dépôt (dossier du projet sur GitHub) · commit (enregistrement des modifications) · branche (version parallèle de travail) · PR (demande de fusion relue) · build (fabrication de la version finale) · déploiement (mise en ligne) · preview (version d'essai en ligne) · variable d'environnement (réglage privé du projet) · lint (examen automatique du code) · hook (contrôle automatique) · CI (vérification automatique sur GitHub) · composant (brique réutilisable de l'interface).
+- En cas d'erreur ou de blocage : dis ce qui se passe, pourquoi, et ce que l'étudiant peut faire maintenant — sans minimiser et sans noyer l'information.
+
 ## Environnement (non négociable)
 
 - **pnpm uniquement** (npm/yarn/npx/bun interdits — hooks ; seule exception : `npm i -g <outil>` pour installer les outils système). Node ≥ 24.
 - **Stack** : Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · déploiement Vercel (URL `*.vercel.app`, jamais de domaine perso).
-- Les fichiers de qualité (`eslint.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/hooks.v1.json`, `scripts/hooks/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
+- Les fichiers de qualité (`AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/config.json`, `.devin/hooks.v1.json`, `scripts/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
 
 ## Workflow
 

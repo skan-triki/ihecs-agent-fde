@@ -35,7 +35,14 @@ const norm = target.replaceAll("\\", "/");
 const base = norm.split("/").pop();
 
 const protectedFiles = new Set([
+  "AGENTS.md",
+  "AGENT.md",
+  "CLAUDE.md",
+  "global_rules.md",
   "eslint.config.mjs",
+  "prettier.config.mjs",
+  ".prettierrc",
+  ".prettierignore",
   "tsconfig.json",
   "knip.json",
   "lint-staged.config.mjs",
@@ -43,6 +50,10 @@ const protectedFiles = new Set([
   "pnpm-workspace.yaml",
   "pnpm-lock.yaml",
   ".npmrc",
+  ".nvmrc",
+  ".editorconfig",
+  ".gitignore",
+  ".gitattributes",
   ".husky/commit-msg",
   ".husky/pre-commit",
   ".husky/pre-push",
@@ -55,8 +66,14 @@ const normNoDrive = norm.replace(/^[A-Za-z]:\//, "");
 const isProtected =
   protectedFiles.has(base) ||
   protectedFiles.has(normNoDrive) ||
+  /^scripts\//.test(normNoDrive) ||
   /\.github\/workflows\/[^/]+$/.test(normNoDrive) ||
-  /^\.devin\/(agents|skills)\//.test(normNoDrive);
+  /^\.devin\/(agents|skills|mcp_config\.json|config\.json)\//.test(
+    normNoDrive,
+  ) ||
+  /^\.devin\/(config\.json|mcp_config\.json|hooks\.v1\.json)$/.test(
+    normNoDrive,
+  );
 
 if (isProtected) {
   console.log(

@@ -45,6 +45,18 @@
       ]
     }
   ],
+  "UserPromptSubmit": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/language-reminder.mjs",
+          "timeout": 10
+        }
+      ]
+    }
+  ],
   "SessionStart": [
     {
       "matcher": "",

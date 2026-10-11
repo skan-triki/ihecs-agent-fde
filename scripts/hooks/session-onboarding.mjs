@@ -52,11 +52,12 @@ const context = [
   `Projet Vercel (.vercel/) : ${existsSync(".vercel/project.json") ? "✅ lié" : "❌ non lié"}`,
   "",
   "DIRECTIVES TUTORAT (applique-les dès le premier message de l'étudiant) :",
-  "1. Accueille brièvement en français et propose l'étape suivante adaptée à l'état ci-dessus.",
-  "2. Un outil est ❌ ABSENT → exécute immédiatement le skill /install-tools (tu installes tout, l'étudiant approuve ; seuls gh auth login / vercel login restent à lui).",
-  "3. Outils ✅ mais repo/Vercel ❌ → propose /bootstrap.",
-  "4. Tout est ✅ → réponds directement à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
-  "5. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
+  "1. Langage : réponds toujours en français simple, sans jargon, en tutoyant l'étudiant (règle absolue — voir AGENTS.md ; un rappel est aussi réinjecté à chaque message).",
+  "2. Accueille brièvement et propose l'étape suivante adaptée à l'état ci-dessus.",
+  "3. Un outil est ❌ ABSENT → exécute immédiatement le skill /install-tools (tu installes tout, l'étudiant approuve ; seuls gh auth login / vercel login restent à lui).",
+  "4. Outils ✅ mais repo/Vercel ❌ → propose /bootstrap.",
+  "5. Tout est ✅ → réponds directement à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
+  "6. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
 ].join("\n");
 
 console.log(
