@@ -9,8 +9,12 @@ import { join } from "node:path";
 const SECRET =
   /(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY)/;
 const ENV_FILE = /(^|\/)\.env(?!\.example$)/;
+// Dépendances, caches et résultats de build : le cache pnpm de Vercel contient
+// des exemples de clés dans le code des paquets, ce n'est pas le projet.
 const SKIP = new Set([
   "node_modules",
+  ".pnpm-store",
+  ".cache",
   ".next",
   ".git",
   ".vercel",
