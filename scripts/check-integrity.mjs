@@ -74,10 +74,27 @@ const lines = (s) =>
       .filter(Boolean),
   );
 
+// vercel.json : pendant le build, Vercel le réécrit (JSON compacté + clés
+// `name` et `version` ajoutées). On compare donc son CONTENU, hors ces clés.
+const vercelConfig = (s) => {
+  try {
+    const config = JSON.parse(s);
+    delete config.name;
+    delete config.version;
+    return JSON.stringify(config);
+  } catch {
+    return null;
+  }
+};
+
 for (const p of RULE_FILES) {
   const o = official(p);
   const l = local(p);
   if (o === null && l === null) continue;
+  if (p === "vercel.json" && o !== null && l !== null) {
+    if (vercelConfig(o) !== vercelConfig(l)) errors.push(`modifié : ${p}`);
+    continue;
+  }
   if (p === ".gitignore" && o !== null && l !== null) {
     const mine = lines(l);
     const removed = [...lines(o)].filter((x) => !mine.has(x));
