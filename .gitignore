@@ -48,3 +48,6 @@ AGENTS.local.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cache pnpm (build Vercel)
+.pnpm-store

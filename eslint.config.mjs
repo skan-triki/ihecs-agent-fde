@@ -241,6 +241,7 @@ const eslintConfig = defineConfig([
   prettier,
 
   globalIgnores([
+    ".pnpm-store/**",
     ".next/**",
     "out/**",
     "build/**",
