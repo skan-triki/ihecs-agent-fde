@@ -2,12 +2,12 @@
 
 Tout le design de l'application vit dans ce dossier et **nulle part ailleurs** :
 
-| Fichier / dossier    | Rôle                                                                                                                                    |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `globals.css`        | **Le seul endroit** où l'on définit les couleurs, rayons, polices et le thème clair/sombre (variables `:root` et `.dark`)               |
-| `components/`        | shadcn/ui (`pnpm exec shadcn add <composant>`) + composants maison de la marque : `logo.tsx`, `theme-toggle.tsx` (bascule clair/sombre) |
-| `theme-provider.tsx` | Gestion du thème clair/sombre (next-themes, défaut : **light**)                                                                         |
-| `utils.ts`           | `cn()` — la seule façon de fusionner des classes Tailwind                                                                               |
+| Fichier / dossier    | Rôle                                                                                                                                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `globals.css`        | **Le seul endroit** où l'on définit les couleurs, rayons, polices et le thème clair/sombre (variables `:root` et `.dark`)                                                                                                    |
+| `components/`        | shadcn/ui (`pnpm exec shadcn add <composant>`) + composants maison de la marque : `logo.tsx` (logo IHECS sans baseline, couleur = token `brand` : bleu en clair, blanc en sombre), `theme-toggle.tsx` (bascule clair/sombre) |
+| `theme-provider.tsx` | Gestion du thème clair/sombre (next-themes, défaut : **light**)                                                                                                                                                              |
+| `utils.ts`           | `cn()` — la seule façon de fusionner des classes Tailwind                                                                                                                                                                    |
 
 Règles appliquées automatiquement (ESLint, zéro tolérance) :
 
