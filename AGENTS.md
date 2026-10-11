@@ -51,5 +51,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Code et identifiants en anglais ; contenu UI en français.
 - Composants Server par défaut ; `"use client"` minimal et en feuille.
-- Design : tokens shadcn uniquement, pas de couleurs brutes.
+- Design : **source unique `src/design-system/`** (tokens dans son `globals.css`, composants shadcn dans `components/`, `cn` dans `utils`). Tokens sémantiques uniquement — les couleurs brutes sont des erreurs ESLint hors de ce dossier.
 - Conventional Commits, messages en français (`feat: …`).

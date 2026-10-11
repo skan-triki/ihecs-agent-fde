@@ -20,9 +20,13 @@ src/
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
-│   ├── ui/                 # shadcn/ui — généré par `pnpm exec shadcn add <composant>`
 │   └── <feature>/          # Composants métier, regroupés par fonctionnalité
-├── lib/                    # Logique pure, clients d'API, utilitaires (`cn`)
+├── design-system/          # ★ SOURCE UNIQUE du design system
+│   ├── globals.css         # Tokens : couleurs, rayons, polices (seul endroit autorisé)
+│   ├── components/         # shadcn/ui — généré par `pnpm exec shadcn add <composant>`
+│   ├── theme-provider.tsx  # Thème clair/sombre
+│   └── utils.ts            # cn()
+├── lib/                    # Logique pure, clients d'API
 ├── server/                 # Code serveur uniquement (Server Actions, accès aux données, appels d'IA)
 └── env.ts                  # Variables d'environnement typées (source de vérité)
 ```
@@ -82,9 +86,9 @@ export async function createProject(
 
 import { useActionState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/design-system/components/button";
+import { Input } from "@/design-system/components/input";
+import { Label } from "@/design-system/components/label";
 import { createProject } from "@/server/actions/create-project";
 
 export function CreateProjectForm() {

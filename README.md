@@ -70,7 +70,7 @@ Règles : une clé secrète ne prend **jamais** le préfixe `NEXT_PUBLIC_` ; dan
 | Où           | Garde-fou                                                                                                                                                                                                                                                                                                                                                                          | Effet                                                                       |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Éditeur      | VSCode : ESLint + Prettier + Tailwind IntelliSense (extensions recommandées)                                                                                                                                                                                                                                                                                                       | Erreurs visibles, format et tri des classes au save                         |
-| Lint         | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss, imports triés                                                                                                                                                                                                                                                           | `--max-warnings=0` : le moindre warning casse tout                          |
+| Lint         | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss (classes inconnues/dupliquées/en conflit, **couleurs brutes interdites hors `src/design-system/`**), imports triés                                                                                                                                                       | `--max-warnings=0` : le moindre warning casse tout                          |
 | Commits      | husky + lint-staged + commitlint (Conventional Commits)                                                                                                                                                                                                                                                                                                                            | Un commit mal formatté ou un mauvais message est rejeté                     |
 | Push         | hook `pre-push` : types + code mort                                                                                                                                                                                                                                                                                                                                                | Impossible de pousser du code cassé                                         |
 | Agent IA     | `.devin/hooks.v1.json` : à chaque session, un état onboarding est sondé (outils, repo, Vercel) pour guider l'étudiant dès le 1er message ; un rappel de langage est réinjecté à chaque message ; bloque npm/npx, force-push, `--no-verify`, `.env*`, `eslint-disable`, modifications des garde-fous ; relint et reformatte chaque fichier édité ; vérifie lint+types avant l'arrêt | L'agent ne peut pas contourner les règles                                   |
@@ -93,9 +93,14 @@ Fichiers verrouillés (réservés à l'enseignant) : `AGENTS.md`, `eslint.config
 │   └── hooks/                 # Garde-fous exécutés par l'agent IA
 └── src/
     ├── app/                   # Routes (App Router)
-    ├── components/            # ui/ = shadcn, vos composants métier à côté
-    ├── lib/                   # Utilitaires (cn, clients d'API)
-    └── env.ts                 # Variables d'environnement typées
+    ├── components/            # Vos composants métier (regroupés par fonctionnalité)
+    ├── design-system/          # ★ SOURCE UNIQUE du design system (voir son README.md)
+    │   ├── globals.css         # Tokens : couleurs, rayons, polices — seul endroit autorisé
+    │   ├── components/         # Composants shadcn/ui
+    │   ├── theme-provider.tsx  # Thème clair/sombre
+    │   └── utils.ts            # cn()
+    ├── lib/                    # Logique pure, clients d'API
+    └── env.ts                  # Variables d'environnement typées
 ```
 
 ## Déploiement

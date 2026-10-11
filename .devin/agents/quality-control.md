@@ -46,12 +46,12 @@ Un seul échec = verdict **❌ NON CONFORME**, quelle que soit la qualité du re
 
 **Tailwind CSS v4 + shadcn/ui (Design System)**
 
-- Composants issus de `@/components/ui` (shadcn) avant toute création maison.
+- Composants issus de `@/design-system/components` (shadcn) avant toute création maison.
 - Couleurs via les tokens sémantiques (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`...) — **pas** de couleurs brutes (`bg-zinc-900`, `#hex`, `text-[#...]`) dans le code applicatif.
 - Valeurs arbitraires (`w-[437px]`) à justifier ; préférer l'échelle Tailwind.
 - Fusion de classes conditionnelles via `cn()` ; variantes via `cva`.
 - Responsive mobile-first (`sm:`, `md:`...) et mode sombre fonctionnel.
-- Les fichiers de `src/components/ui/` ne sont modifiés que pour un besoin de design system global.
+- Les fichiers de `src/design-system/` ne sont modifiés que pour un besoin de design system global (source unique de vérité : tokens uniquement dans `src/design-system/globals.css`, aucune couleur brute hors de ce dossier).
 
 **Hygiène**
 

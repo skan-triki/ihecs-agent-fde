@@ -81,11 +81,11 @@ const eslintConfig = defineConfig([
             },
             {
               name: "clsx",
-              message: "Utilisez `cn` depuis '@/lib/utils'.",
+              message: "Utilisez `cn` depuis '@/design-system/utils'.",
             },
             {
               name: "tailwind-merge",
-              message: "Utilisez `cn` depuis '@/lib/utils'.",
+              message: "Utilisez `cn` depuis '@/design-system/utils'.",
             },
             {
               name: "process",
@@ -97,6 +97,11 @@ const eslintConfig = defineConfig([
               group: ["../*", "./../*"],
               message:
                 "Utilisez l'alias '@/…' au lieu des imports relatifs parents.",
+            },
+            {
+              group: ["@/components/ui/*", "@/lib/utils"],
+              message:
+                "Source unique : le design system vit dans '@/design-system/…' (composants : '@/design-system/components/…', utilitaires : '@/design-system/utils').",
             },
           ],
         },
@@ -151,7 +156,7 @@ const eslintConfig = defineConfig([
     extends: [betterTailwindcss.configs["recommended-error"]],
     settings: {
       "better-tailwindcss": {
-        entryPoint: "src/app/globals.css",
+        entryPoint: "src/design-system/globals.css",
       },
     },
     rules: {
@@ -161,6 +166,40 @@ const eslintConfig = defineConfig([
       "better-tailwindcss/no-unknown-classes": [
         "error",
         { ignore: ["^toaster$"] },
+      ],
+    },
+  },
+
+  // SOURCE UNIQUE DU DESIGN SYSTEM : hors de src/design-system/, seuls les
+  // tokens sémantiques sont autorisés — pas de couleurs brutes (palette ou hex)
+  // dans le code applicatif. On change le thème dans globals.css, nulle part ailleurs.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/design-system/**"],
+    rules: {
+      "better-tailwindcss/no-restricted-classes": [
+        "error",
+        {
+          restrict: [
+            {
+              pattern:
+                "(bg|text|border|ring|fill|stroke|from|via|to|outline|decoration|divide|shadow)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-.*",
+              message:
+                "Couleur brute interdite : utilisez les tokens sémantiques (ex. bg-background, text-muted-foreground, border-border). Le thème se règle UNIQUEMENT dans src/design-system/globals.css.",
+            },
+            {
+              pattern:
+                "(bg|text|border|ring|fill|stroke|from|via|to)-\\[(#|rgb|hsl|oklch)[^\\]]*\\]",
+              message:
+                "Couleur hex/brute interdite : utilisez les tokens sémantiques. Le thème se règle UNIQUEMENT dans src/design-system/globals.css.",
+            },
+            {
+              pattern: "(bg|text|border)-(black|white)\\b.*",
+              message:
+                "Noir/blanc bruts interdits : utilisez bg-background, text-foreground, border-border. Le thème se règle UNIQUEMENT dans src/design-system/globals.css.",
+            },
+          ],
+        },
       ],
     },
   },

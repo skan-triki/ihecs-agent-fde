@@ -1,11 +1,11 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/design-system/components/badge";
+import { Button } from "@/design-system/components/button";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/design-system/components/card";
 import { env } from "@/env";
 
 const steps = [
