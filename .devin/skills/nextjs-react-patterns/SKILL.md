@@ -17,7 +17,10 @@ src/
 ├── app/                    # Routes (App Router) — uniquement routing, layout et composition
 │   ├── (marketing)/        # Groupes de routes (n'affectent pas l'URL)
 │   ├── api/<nom>/route.ts  # Route Handlers (webhooks, streaming IA, API publique)
-│   ├── layout.tsx
+│   ├── layout.tsx          # Racine : polices, thème, Toaster
+│   ├── loading.tsx         # Conventionnel : chargement de la route
+│   ├── error.tsx           # Conventionnel : erreurs de la route ("use client" obligatoire)
+│   ├── not-found.tsx       # Conventionnel : 404
 │   └── page.tsx
 ├── components/
 │   └── <feature>/          # Composants métier, regroupés par fonctionnalité
@@ -26,10 +29,17 @@ src/
 │   ├── components/         # shadcn/ui — généré par `pnpm exec shadcn add <composant>`
 │   ├── theme-provider.tsx  # Thème clair/sombre
 │   └── utils.ts            # cn()
+├── hooks/                  # Hooks partagés (créés ici, jamais dans app/)
 ├── lib/                    # Logique pure, clients d'API
 ├── server/                 # Code serveur uniquement (Server Actions, accès aux données, appels d'IA)
 └── env.ts                  # Variables d'environnement typées (source de vérité)
 ```
+
+Règles d'arborescence (canoniques Next.js) :
+
+- `app/` ne contient JAMAIS de logique : délègue aux Server Components/Actions de `src/server/` et aux composants de `src/components/`.
+- Crée `loading.tsx`, `error.tsx` et `not-found.tsx` au niveau de chaque route asynchrone qui en a besoin (pas seulement à la racine).
+- Un dossier de route = son fichier de test à côté si pertinent ; les hooks partagés dans `src/hooks/`, les types partagés dans `src/types/`.
 
 ## Server vs Client Components
 

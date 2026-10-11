@@ -88,18 +88,21 @@ Fichiers verrouillés (réservés à l'enseignant) : `AGENTS.md`, `eslint.config
 ├── .github/                   # CI + Dependabot + template de PR
 ├── .husky/                    # Hooks git (pre-commit, commit-msg, pre-push)
 ├── .vscode/                   # Réglages et extensions recommandées
+├── public/                    # Fichiers publics (images, icônes) servis tels quels
 ├── scripts/
 │   ├── check-env.mjs          # Cohérence variables d'environnement
 │   └── hooks/                 # Garde-fous exécutés par l'agent IA
 └── src/
-    ├── app/                   # Routes (App Router)
+    ├── app/                   # Routes (App Router) : layout, page, loading, error, not-found
     ├── components/            # Vos composants métier (regroupés par fonctionnalité)
     ├── design-system/          # ★ SOURCE UNIQUE du design system (voir son README.md)
     │   ├── globals.css         # Tokens : couleurs, rayons, polices — seul endroit autorisé
     │   ├── components/         # Composants shadcn/ui
     │   ├── theme-provider.tsx  # Thème clair/sombre
     │   └── utils.ts            # cn()
+    ├── hooks/                  # Hooks React partagés
     ├── lib/                    # Logique pure, clients d'API
+    ├── server/                 # Code serveur uniquement (Server Actions, accès aux données)
     └── env.ts                  # Variables d'environnement typées
 ```
 
