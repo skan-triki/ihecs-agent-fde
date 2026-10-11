@@ -26,7 +26,6 @@ const git = (args) =>
   spawnSync("git", args, {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
-    shell: process.platform === "win32",
   });
 
 const fetched = git(["fetch", "--depth=1", "--no-tags", TEMPLATE_URL, "main"]);

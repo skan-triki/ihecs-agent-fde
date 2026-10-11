@@ -60,7 +60,6 @@ export const isTemplateRepo = () => {
   }
   const r = spawnSync("git", ["remote", "get-url", "origin"], {
     encoding: "utf8",
-    shell: process.platform === "win32",
   });
   const m = /github\.com[/:]([^/]+)\/([^/.\s]+)/.exec(String(r.stdout ?? ""));
   return m ? sameRepo(m[1], m[2]) : false;

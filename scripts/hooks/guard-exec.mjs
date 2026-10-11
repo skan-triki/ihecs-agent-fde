@@ -203,7 +203,6 @@ const run = (cmd, args) =>
   spawnSync(cmd, args, {
     encoding: "utf8",
     timeout: 20_000,
-    shell: process.platform === "win32",
   });
 
 const MSG = {
