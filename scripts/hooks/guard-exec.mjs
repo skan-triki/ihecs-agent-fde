@@ -74,7 +74,10 @@ const rules = [
 const hit = rules.find((rule) => rule.re.test(command));
 if (hit) {
   console.log(
-    JSON.stringify({ decision: "block", reason: `${hit.reason} [garde-fou du cours]` }),
+    JSON.stringify({
+      decision: "block",
+      reason: `${hit.reason} [garde-fou du cours]`,
+    }),
   );
   process.exit(2);
 }

@@ -31,17 +31,28 @@ const run = (cmd, args) => {
     shell: process.platform === "win32",
     timeout: 25_000,
   });
-  return { status: r.status ?? 1, stdout: String(r.stdout ?? ""), stderr: String(r.stderr ?? "") };
+  return {
+    status: r.status ?? 1,
+    stdout: String(r.stdout ?? ""),
+    stderr: String(r.stderr ?? ""),
+  };
 };
 
 if (/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(filePath)) {
-  const eslint = run("pnpm", ["exec", "eslint", "--fix", "--no-warn-ignored", filePath]);
+  const eslint = run("pnpm", [
+    "exec",
+    "eslint",
+    "--fix",
+    "--no-warn-ignored",
+    filePath,
+  ]);
   if (eslint.status !== 0) {
     console.log(
       JSON.stringify({
         hookSpecificOutput: {
           hookEventName: "PostToolUse",
-          additionalContext: `Le fichier vient d'être reformaté (ESLint --fix). ERREURS RESTANTES à corriger avant de continuer :\n${eslint.stdout || eslint.stderr}`,        },
+          additionalContext: `Le fichier vient d'être reformaté (ESLint --fix). ERREURS RESTANTES à corriger avant de continuer :\n${eslint.stdout || eslint.stderr}`,
+        },
       }),
     );
     process.exit(0);
@@ -57,7 +68,9 @@ try {
   process.exit(0);
 }
 
-const size = existsSync(filePath) ? `${remaining.split("\n").length} lignes` : "";
+const size = existsSync(filePath)
+  ? `${remaining.split("\n").length} lignes`
+  : "";
 console.log(
   JSON.stringify({
     hookSpecificOutput: {

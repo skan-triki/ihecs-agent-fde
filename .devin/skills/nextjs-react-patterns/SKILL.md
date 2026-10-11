@@ -88,13 +88,22 @@ import { Label } from "@/components/ui/label";
 import { createProject } from "@/server/actions/create-project";
 
 export function CreateProjectForm() {
-  const [state, action, pending] = useActionState(createProject, { ok: false, message: "" });
+  const [state, action, pending] = useActionState(createProject, {
+    ok: false,
+    message: "",
+  });
   return (
     <form action={action} className="flex flex-col gap-3">
       <Label htmlFor="name">Nom du projet</Label>
       <Input id="name" name="name" required />
-      <Button type="submit" disabled={pending}>{pending ? "Création…" : "Créer"}</Button>
-      {state.message ? <p role="status" className="text-sm text-muted-foreground">{state.message}</p> : null}
+      <Button type="submit" disabled={pending}>
+        {pending ? "Création…" : "Créer"}
+      </Button>
+      {state.message ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {state.message}
+        </p>
+      ) : null}
     </form>
   );
 }

@@ -39,8 +39,6 @@
       "Exec(sudo)",
       "Exec(vercel domains)"
     ],
-    "ask": [
-      "mcp__vercel__*"
-    ]
+    "ask": ["mcp__vercel__*"]
   }
 }

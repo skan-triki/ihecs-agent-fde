@@ -21,14 +21,14 @@ Composants déjà installés : `button`, `card`, `input`, `label`, `textarea`, `
 
 Les couleurs, rayons et polices sont définis comme variables CSS dans `src/app/globals.css` (`:root` et `.dark`). Dans le code applicatif, utilise **exclusivement** les tokens :
 
-| Usage | Classes |
-|---|---|
-| Fond / texte de page | `bg-background` `text-foreground` |
-| Texte secondaire | `text-muted-foreground` |
-| Surfaces | `bg-card` `text-card-foreground`, `bg-muted`, `bg-popover` |
-| Action principale | `bg-primary` `text-primary-foreground` |
-| Danger | `bg-destructive` `text-destructive` |
-| Bordures / focus | `border-border` `border-input` `ring-ring` |
+| Usage                | Classes                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| Fond / texte de page | `bg-background` `text-foreground`                          |
+| Texte secondaire     | `text-muted-foreground`                                    |
+| Surfaces             | `bg-card` `text-card-foreground`, `bg-muted`, `bg-popover` |
+| Action principale    | `bg-primary` `text-primary-foreground`                     |
+| Danger               | `bg-destructive` `text-destructive`                        |
+| Bordures / focus     | `border-border` `border-input` `ring-ring`                 |
 
 ❌ Interdit dans le code applicatif : `bg-zinc-900`, `text-gray-500`, `bg-[#1e40af]`, `style={{ color: ... }}`.
 ✅ Pour changer l'identité visuelle : modifie les variables dans `globals.css` (ou applique un preset via `pnpm exec shadcn apply`), jamais composant par composant.

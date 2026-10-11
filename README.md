@@ -6,13 +6,13 @@ Template prêt à l'emploi pour construire et livrer un MVP d'application IA : N
 
 ## Stack
 
-| Élément | Choix | Rôle |
-|---|---|---|
-| Framework | [Next.js 16](https://nextjs.org) (App Router) | Pages, API, rendu serveur |
-| UI | [React 19](https://react.dev) + [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS v4](https://tailwindcss.com) | Design system et styles |
-| Langage | TypeScript (strict) | Types vérifiés à la compilation |
-| Hébergement | GitHub + [Vercel](https://vercel.com) (URL `*.vercel.app`, sans domaine perso) | Déploiement automatique |
-| Agent IA | Devin / Windsurf (règles, agents et skills dans `.devin/`) | Développement assisté |
+| Élément     | Choix                                                                                                           | Rôle                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Framework   | [Next.js 16](https://nextjs.org) (App Router)                                                                   | Pages, API, rendu serveur       |
+| UI          | [React 19](https://react.dev) + [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS v4](https://tailwindcss.com) | Design system et styles         |
+| Langage     | TypeScript (strict)                                                                                             | Types vérifiés à la compilation |
+| Hébergement | GitHub + [Vercel](https://vercel.com) (URL `*.vercel.app`, sans domaine perso)                                  | Déploiement automatique         |
+| Agent IA    | Devin / Windsurf (règles, agents et skills dans `.devin/`)                                                      | Développement assisté           |
 
 ## Démarrage rapide
 
@@ -33,26 +33,26 @@ Il installe, crée le dépôt GitHub, le projet Vercel, synchronise les variable
 
 ## Le workflow étudiant (2 commandes à retenir)
 
-| Commande | Quand | Ce qui se passe |
-|---|---|---|
-| `/quality-check` | Pendant le développement | Audit qualité indépendant : contrôles auto + relecture Next/React/Tailwind/shadcn |
-| `/ship` | Pour livrer une fonctionnalité | Qualité → corrections → build & routes → commit conventionnel → branche → PR → preview Vercel |
+| Commande         | Quand                          | Ce qui se passe                                                                               |
+| ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `/quality-check` | Pendant le développement       | Audit qualité indépendant : contrôles auto + relecture Next/React/Tailwind/shadcn             |
+| `/ship`          | Pour livrer une fonctionnalité | Qualité → corrections → build & routes → commit conventionnel → branche → PR → preview Vercel |
 
 Également utiles : `/setup-github`, `/setup-vercel`, `/env-vars ajouter <NOM>`, `/env-vars audit`, `/verify`, `/design-system`, `/nextjs-react-patterns`, `/bootstrap`.
 
 ## Commandes manuelles
 
-| Commande | Description |
-|---|---|
-| `pnpm dev` | Serveur de développement |
-| `pnpm check` | Tous les contrôles : env, format, lint (zéro warning), types, code mort |
-| `pnpm verify` | `check` + build de production |
-| `pnpm lint` / `pnpm lint:fix` | ESLint (aucun warning toléré) |
-| `pnpm format` / `pnpm format:check` | Prettier |
-| `pnpm typecheck` | Types TypeScript (générés + vérifiés) |
-| `pnpm knip` | Détection de code et dépendances inutilisés |
-| `pnpm env:check` | Cohérence des variables d'environnement (schéma ↔ `.env.example`) |
-| `pnpm exec shadcn add <composant>` | Ajouter un composant shadcn/ui |
+| Commande                            | Description                                                             |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`                          | Serveur de développement                                                |
+| `pnpm check`                        | Tous les contrôles : env, format, lint (zéro warning), types, code mort |
+| `pnpm verify`                       | `check` + build de production                                           |
+| `pnpm lint` / `pnpm lint:fix`       | ESLint (aucun warning toléré)                                           |
+| `pnpm format` / `pnpm format:check` | Prettier                                                                |
+| `pnpm typecheck`                    | Types TypeScript (générés + vérifiés)                                   |
+| `pnpm knip`                         | Détection de code et dépendances inutilisés                             |
+| `pnpm env:check`                    | Cohérence des variables d'environnement (schéma ↔ `.env.example`)       |
+| `pnpm exec shadcn add <composant>`  | Ajouter un composant shadcn/ui                                          |
 
 ## Variables d'environnement
 
@@ -67,16 +67,16 @@ Règles : une clé secrète ne prend **jamais** le préfixe `NEXT_PUBLIC_` ; dan
 
 ## Garde-fous automatiques (ce qui vous protège)
 
-| Où | Garde-fou | Effet |
-|---|---|---|
-| Éditeur | VSCode : ESLint + Prettier + Tailwind IntelliSense (extensions recommandées) | Erreurs visibles, format et tri des classes au save |
-| Lint | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss, imports triés | `--max-warnings=0` : le moindre warning casse tout |
-| Commits | husky + lint-staged + commitlint (Conventional Commits) | Un commit mal formatté ou un mauvais message est rejeté |
-| Push | hook `pre-push` : types + code mort | Impossible de pousser du code cassé |
-| Agent IA | `.devin/hooks.v1.json` : bloque npm/npx, force-push, `--no-verify`, `.env*`, `eslint-disable`, modifications des garde-fous ; relint et reformatte chaque fichier édité ; vérifie lint+types avant l'arrêt | L'agent ne peut pas contourner les règles |
-| CI (GitHub) | `.github/workflows/ci.yml` : `pnpm verify` + commitlint sur les PR | Toute PR non conforme reste rouge |
-| Supply chain | pnpm `minimumReleaseAge: 7 jours`, lockfile figé en CI, Dependabot avec cooldown 7 jours, actions GitHub épinglées par SHA | Les dépendances fraîchement publiées (risque de supply chain) sont refusées |
-| Sécurité | `.env*` gitignorés, `process.env` restreint, scan de secrets, `poweredByHeader` désactivé | Pas de fuite de secrets |
+| Où           | Garde-fou                                                                                                                                                                                                  | Effet                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Éditeur      | VSCode : ESLint + Prettier + Tailwind IntelliSense (extensions recommandées)                                                                                                                               | Erreurs visibles, format et tri des classes au save                         |
+| Lint         | `eslint.config.mjs` : Next core-web-vitals, TS **strictTypeChecked**, jsx-a11y strict, better-tailwindcss, imports triés                                                                                   | `--max-warnings=0` : le moindre warning casse tout                          |
+| Commits      | husky + lint-staged + commitlint (Conventional Commits)                                                                                                                                                    | Un commit mal formatté ou un mauvais message est rejeté                     |
+| Push         | hook `pre-push` : types + code mort                                                                                                                                                                        | Impossible de pousser du code cassé                                         |
+| Agent IA     | `.devin/hooks.v1.json` : bloque npm/npx, force-push, `--no-verify`, `.env*`, `eslint-disable`, modifications des garde-fous ; relint et reformatte chaque fichier édité ; vérifie lint+types avant l'arrêt | L'agent ne peut pas contourner les règles                                   |
+| CI (GitHub)  | `.github/workflows/ci.yml` : `pnpm verify` + commitlint sur les PR                                                                                                                                         | Toute PR non conforme reste rouge                                           |
+| Supply chain | pnpm `minimumReleaseAge: 7 jours`, lockfile figé en CI, Dependabot avec cooldown 7 jours, actions GitHub épinglées par SHA                                                                                 | Les dépendances fraîchement publiées (risque de supply chain) sont refusées |
+| Sécurité     | `.env*` gitignorés, `process.env` restreint, scan de secrets, `poweredByHeader` désactivé                                                                                                                  | Pas de fuite de secrets                                                     |
 
 Fichiers verrouillés (réservés à l'enseignant) : `eslint.config.mjs`, `tsconfig.json`, `.husky/*`, `.github/*`, `scripts/hooks/*`, `.devin/hooks.v1.json`, `pnpm-workspace.yaml`, `knip.json`, `lint-staged.config.mjs`.
 

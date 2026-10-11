@@ -67,7 +67,8 @@ function DialogContent({
         {...props}
       >
         {children}
-        {showCloseButton ? <DialogPrimitive.Close data-slot="dialog-close" asChild>
+        {showCloseButton ? (
+          <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
               className="absolute top-2 right-2"
@@ -76,7 +77,8 @@ function DialogContent({
               <XIcon />
               <span className="sr-only">Close</span>
             </Button>
-          </DialogPrimitive.Close> : null}
+          </DialogPrimitive.Close>
+        ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
   );
@@ -110,9 +112,11 @@ function DialogFooter({
       {...props}
     >
       {children}
-      {showCloseButton ? <DialogPrimitive.Close asChild>
+      {showCloseButton ? (
+        <DialogPrimitive.Close asChild>
           <Button variant="outline">Close</Button>
-        </DialogPrimitive.Close> : null}
+        </DialogPrimitive.Close>
+      ) : null}
     </div>
   );
 }

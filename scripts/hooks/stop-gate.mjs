@@ -21,7 +21,10 @@ try {
 if (payload.stop_hook_active) process.exit(0);
 
 const git = (args) => {
-  const r = spawnSync("git", args, { encoding: "utf8", shell: process.platform === "win32" });
+  const r = spawnSync("git", args, {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
   return r.status === 0 ? String(r.stdout ?? "") : "";
 };
 

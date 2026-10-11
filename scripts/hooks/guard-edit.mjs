@@ -21,7 +21,12 @@ if (process.env.IHECS_TEACHER_BYPASS === "true") process.exit(0);
 
 const ti = payload.tool_input ?? {};
 const target = String(ti.file_path ?? ti.path ?? ti.notebook_path ?? "");
-const content = [ti.new_string, ti.content, ti.new_source, ti.edits?.map((e) => e.new_text)]
+const content = [
+  ti.new_string,
+  ti.content,
+  ti.new_source,
+  ti.edits?.map((e) => e.new_text),
+]
   .filter(Boolean)
   .join("\n");
 const addedText = content || "";
