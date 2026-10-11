@@ -281,12 +281,15 @@ for (const fmt of ["cli", "cascade"]) {
   console.log(
     `\n=== ${fmt} : ordre — mise en route pas terminée (dépôt étudiant) ===`,
   );
+  // Testable seulement si aucun projet Vercel n'est lié sur ce poste (CI).
   const student = { GITHUB_REPOSITORY: "etudiant/mon-mvp" };
-  for (const c of ["git push -u origin feat/x", "gh pr create --fill"]) {
-    report(
-      runHook("scripts/hooks/guard-exec.mjs", execPayload(c), student) === 2,
-      `${c} (sans Vercel lié)`,
-    );
+  if (!existsSync(".vercel/project.json")) {
+    for (const c of ["git push -u origin feat/x", "gh pr create --fill"]) {
+      report(
+        runHook("scripts/hooks/guard-exec.mjs", execPayload(c), student) === 2,
+        `${c} (sans Vercel lié)`,
+      );
+    }
   }
 
   // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.
