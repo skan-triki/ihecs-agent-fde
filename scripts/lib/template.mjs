@@ -2,10 +2,52 @@
 // étudiant » (concept obligatoire, intégrité des règles) ne s'appliquent pas
 // au template lui-même, qui n'a pas de concept et dont les règles évoluent.
 import { spawnSync } from "node:child_process";
+import { gunzipSync } from "node:zlib";
 
 const TEMPLATE_OWNER = "skan-triki";
 const TEMPLATE_REPO = "ihecs-mvp-starter";
-export const TEMPLATE_URL = `https://github.com/${TEMPLATE_OWNER}/${TEMPLATE_REPO}.git`;
+const TARBALL_URL = `https://codeload.github.com/${TEMPLATE_OWNER}/${TEMPLATE_REPO}/tar.gz/refs/heads/main`;
+
+// Fichiers officiels du template (branche main), téléchargés en HTTPS : ne
+// dépend pas de git (le build Vercel n'a pas de dépôt git).
+// Retourne Map<chemin, contenu texte> ou null si le téléchargement échoue.
+export const fetchTemplateFiles = async () => {
+  let buf;
+  try {
+    const r = await fetch(TARBALL_URL);
+    if (!r.ok) return null;
+    buf = gunzipSync(Buffer.from(await r.arrayBuffer()));
+  } catch {
+    return null;
+  }
+  const files = new Map();
+  const str = (o, n) => buf.toString("utf8", o, o + n).replace(/\0.*$/s, "");
+  let longName = null;
+  for (let off = 0; off + 512 <= buf.length;) {
+    const name = str(off, 100);
+    if (!name) break;
+    const size = parseInt(str(off + 124, 12).trim() || "0", 8);
+    const type = str(off + 156, 1);
+    const prefix = str(off + 345, 155);
+    const data = off + 512;
+    if (type === "x") {
+      longName =
+        /\d+ path=([^\n]+)\n/.exec(
+          buf.toString("utf8", data, data + size),
+        )?.[1] ?? null;
+    } else {
+      const full = longName ?? (prefix ? `${prefix}/${name}` : name);
+      longName = null;
+      // L'archive GitHub range tout sous « <dépôt>-<commit>/ ».
+      const path = full.split("/").slice(1).join("/");
+      if ((type === "0" || type === "") && path) {
+        files.set(path, buf.toString("utf8", data, data + size));
+      }
+    }
+    off = data + Math.ceil(size / 512) * 512;
+  }
+  return files;
+};
 
 // Fichiers et dossiers de règles : ils doivent rester IDENTIQUES à ceux du
 // template dans chaque dépôt étudiant (vérifié par check-integrity.mjs).

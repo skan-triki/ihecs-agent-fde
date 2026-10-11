@@ -1,18 +1,17 @@
 // Intégrité des règles du cours : dans un dépôt étudiant, les fichiers de
 // garde-fous (hooks, CI, agents, skills, configs de qualité…) doivent être
 // IDENTIQUES à ceux du template officiel. Toute modification, suppression ou
-// ajout est refusé. Utilisé par le pre-push, la CI et le build Vercel.
+// ajout est refusé. Utilisé par le pre-push, la CI et le build Vercel (sans git).
 // Réparation : `pnpm rules:sync` (récupère les versions officielles).
-import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  fetchTemplateFiles,
   isTemplateRepo,
   PACKAGE_RULE_KEYS,
   RULE_DIRS,
   RULE_FILES,
-  TEMPLATE_URL,
 } from "./lib/template.mjs";
 
 if (isTemplateRepo()) {
@@ -22,14 +21,8 @@ if (isTemplateRepo()) {
   process.exit(0);
 }
 
-const git = (args) =>
-  spawnSync("git", args, {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
-
-const fetched = git(["fetch", "--depth=1", "--no-tags", TEMPLATE_URL, "main"]);
-if (fetched.status !== 0) {
+const templateFiles = await fetchTemplateFiles();
+if (!templateFiles) {
   console.error(
     "✗ Intégrité des règles : impossible de récupérer le template officiel (connexion internet ?). Contrôle refusé par sécurité.",
   );
@@ -38,8 +31,8 @@ if (fetched.status !== 0) {
 
 const norm = (s) => s.replaceAll("\r\n", "\n");
 const official = (path) => {
-  const r = git(["show", `FETCH_HEAD:${path}`]);
-  return r.status === 0 ? norm(String(r.stdout)) : null;
+  const c = templateFiles.get(path);
+  return c === undefined ? null : norm(c);
 };
 const local = (path) =>
   existsSync(path) ? norm(readFileSync(path, "utf8")) : null;
@@ -57,8 +50,9 @@ const walk = (dir) => {
 const errors = [];
 
 for (const dir of RULE_DIRS) {
-  const tree = git(["ls-tree", "-r", "--name-only", "FETCH_HEAD", "--", dir]);
-  const expected = new Set(String(tree.stdout).split(/\r?\n/).filter(Boolean));
+  const expected = new Set(
+    [...templateFiles.keys()].filter((p) => p.startsWith(`${dir}/`)),
+  );
   const present = new Set(walk(dir).filter((p) => !IGNORED.test(p)));
   for (const p of expected) {
     if (!present.has(p)) errors.push(`supprimé : ${p}`);
