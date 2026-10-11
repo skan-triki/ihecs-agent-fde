@@ -17,7 +17,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   - un outil manque → exécute le skill `/install-tools` (c'est TOI qui installes tout : Node, pnpm, Git, GitHub CLI, Vercel CLI, éditeur + extensions ; seuls `gh auth login` et `vercel login` restent à l'étudiant) ;
   - outils OK mais projet non déployé → propose `/bootstrap` ;
   - tout est prêt → réponds à sa demande.
-- Si le contexte onboarding est absent (IDE sans hook de session comme Cascade/Windsurf, Node manquant, hook en échec), lance `node scripts/hooks/session-onboarding.mjs --human` toi-même à ton premier message : il affiche le même état et les mêmes directives. Applique la même logique ensuite.
+- Si le contexte onboarding est absent (IDE sans hook de session comme Cascade/Windsurf, Node manquant, hook en échec), lance `pnpm diagnostic` toi-même à ton premier message (ou `node scripts/hooks/session-onboarding.mjs --human` si pnpm manque) : il affiche le même état, la **PROCHAINE ÉTAPE** calculée et les mêmes directives. Propose cette étape, et elle seule.
 
 ## Langage étudiant (règle absolue)
 

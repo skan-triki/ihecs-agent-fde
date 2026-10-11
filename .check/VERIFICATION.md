@@ -37,7 +37,7 @@ Dans l'ordre où ils doivent être lancés. En français simple : ce que fait ch
 - [ ] **3. `pnpm check` à 100 %** — env, format, lint, types, code mort. Zéro erreur, zéro warning.
 - [ ] **4. Message de commit** — format Conventional Commits, en français, décrivant le _pourquoi_ : `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `style:`, `test:` (ex. `feat: ajoute la page de connexion`). Jamais `--no-verify`.
 - [ ] **5. `git commit`** — les hooks git s'exécutent seuls (voir §3). Un refus = une erreur à corriger, pas un obstacle à contourner.
-- [ ] **6. `git push`** — le hook `pre-push` relance types + code mort.
+- [ ] **6. `git push`** — le hook `pre-push` relance `pnpm check` complet (env, format, lint, types, code mort).
 - [ ] **7. CI** — après le push, vérifier que la CI GitHub est verte : `gh run watch` ou `gh run list --limit 1`. Rouge = corriger et recommencer.
 - [ ] **8. Pour une livraison** (pas un simple enregistrement) : `pnpm verify` + test des routes (§4) — ou plus simplement le skill `/ship`, qui enchaîne tout.
 
@@ -51,8 +51,8 @@ Ces garde-fous tournent automatiquement — il faut les connaître pour comprend
 | Avant que l'agent conclue son tour       | hook `stop-gate` : lint + types sur les fichiers modifiés, et verrou concept                                                           | Empêche de conclure sur du code cassé    |
 | `git commit`                             | hook `pre-commit` : `concept:check --staged` (si `src/` touché) + `lint-staged` (ESLint `--fix` + Prettier sur les fichiers du commit) | Commit refusé si non conforme            |
 | `git commit`                             | hook `commit-msg` : commitlint                                                                                                         | Message mal formé = commit refusé        |
-| `git push`                               | hook `pre-push` : `pnpm typecheck` + `pnpm knip`                                                                                       | Impossible de pousser du code cassé      |
-| Sur GitHub (push `main` / PR)            | CI `.github/workflows/ci.yml` : `pnpm verify` + commitlint sur les PR                                                                  | Une PR rouge ne se fusionne pas          |
+| `git push`                               | hook `pre-push` : `pnpm check` complet (env, format, lint, types, code mort)                                                           | Impossible de pousser du code cassé      |
+| Sur GitHub (push `main` / PR)            | CI `.github/workflows/ci.yml` : `pnpm verify` + concept validé (dépôts étudiants) + commitlint sur les PR                              | Une PR rouge ne se fusionne pas          |
 
 ## 4. Le test manuel avant de livrer (fonctionnel)
 

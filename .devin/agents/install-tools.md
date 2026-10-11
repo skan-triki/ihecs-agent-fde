@@ -90,9 +90,12 @@ Si TOUT est présent, passe directement à l'étape 5 (extensions), puis 6 (logi
   - Windsurf : `windsurf --install-extension <id>` pour chaque entrée (si la CLI existe).
 - Aucune CLI dispo → liste les extensions et leurs liens marketplace pour l'étudiant.
 
-## Étape 6 — Vérification finale
+## Étape 6 — Vérification finale (critère de fin obligatoire)
 
-Relance TOUTES les vérifications de l'étape 1 + logins + `node_modules`. Toute ligne ❌ restante doit avoir une action claire associée (commande pour l'étudiant ou redémarrage requis).
+Lance `pnpm diagnostic`. C'est le **seul critère de réussite** : il vérifie les versions minimales (Node ≥ 24, pnpm ≥ 10), les connexions GitHub et Vercel, `node_modules` et `.env.local`, et sort en code 0 seulement si tout est prêt.
+
+- Code 0 → passe au rapport.
+- Code 1 → chaque ligne ❌ doit avoir une action claire (installation à refaire, commande de connexion pour l'étudiant, ou redémarrage de Devin). Tu ne conclus **jamais** « installé » tant que `pnpm diagnostic` n'est pas à 0.
 
 ## Étape 7 — Rapport final (format imposé)
 

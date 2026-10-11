@@ -1,36 +1,29 @@
-// Hook Devin SessionStart — sonde l'environnement de l'étudiant (outils, repo,
-// Vercel, concept MVP) et injecte un contexte d'accompagnement pour que
-// l'agent guide l'étudiant dès son premier message, sans refaire ces
-// vérifications lui-même.
-import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+// Diagnostic unique de l'environnement étudiant — utilisé par :
+//   - le hook Devin SessionStart (sortie JSON additionalContext) ;
+//   - l'agent lui-même sous Cascade (`--human`, aucun hook de session) ;
+//   - `pnpm diagnostic` (`--human --strict` : code 1 si l'environnement n'est pas prêt),
+//     critère de fin de /install-tools et pré-requis de /bootstrap.
+// Il vérifie les versions minimales, les connexions GitHub/Vercel, les
+// dépendances, le concept MVP (via check-concept.mjs, même verdict que les
+// verrous) et CALCULE la prochaine étape, pour que l'accueil soit déterministe.
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 const IS_WIN = process.platform === "win32";
-
-// Concept MVP : validé seulement si .concept/MVP.md existe, statut validé
-// et sans contenu EXEMPLE restant (mêmes critères que check-concept.mjs).
-const conceptValid = (() => {
-  if (!existsSync(".concept/MVP.md")) return false;
-  try {
-    const raw = readFileSync(".concept/MVP.md", "utf8");
-    return (
-      /^\s*>?\s*statut\s*:\s*validé/im.test(raw) && !/EXEMPLE\s*—/i.test(raw)
-    );
-  } catch {
-    return false;
-  }
-})();
+const args = process.argv.slice(2);
+const human = args.includes("--human");
+const strict = args.includes("--strict");
 
 // Sur Windows, pnpm/vercel sont des .cmd : il faut passer par le shell.
-const probe = (cmd, args) =>
+const probe = (cmd, cmdArgs, timeout = 8000) =>
   new Promise((resolve) => {
     const child = IS_WIN
-      ? spawn(`${cmd} ${args.join(" ")}`, {
+      ? spawn(`${cmd} ${cmdArgs.join(" ")}`, {
           shell: true,
           windowsHide: true,
-          timeout: 6000,
+          timeout,
         })
-      : spawn(cmd, args, { timeout: 6000 });
+      : spawn(cmd, cmdArgs, { timeout });
     let out = "";
     child.stdout.on("data", (d) => {
       out += d;
@@ -41,49 +34,117 @@ const probe = (cmd, args) =>
     );
   });
 
-const [node, pnpm, git, gh, vercel, origin] = await Promise.all([
-  probe("node", ["--version"]),
-  probe("pnpm", ["--version"]),
-  probe("git", ["--version"]),
-  probe("gh", ["--version"]),
-  probe("vercel", ["--version"]),
-  probe("git", ["remote", "get-url", "origin"]),
-]);
+const [node, pnpm, git, gh, vercel, origin, ghAuth, vercelUser] =
+  await Promise.all([
+    probe("node", ["--version"]),
+    probe("pnpm", ["--version"]),
+    probe("git", ["--version"]),
+    probe("gh", ["--version"]),
+    probe("vercel", ["--version"]),
+    probe("git", ["remote", "get-url", "origin"]),
+    probe("gh", ["auth", "status"]),
+    probe("vercel", ["whoami"], 15_000),
+  ]);
 
 const versionOf = (v) => v?.match(/\d+\.\d+(\.\d+)?/)?.[0] ?? null;
-const line = (label, value) =>
-  `${label} : ${value ? `✅ ${value}` : "❌ ABSENT"}`;
+const major = (v) => Number(versionOf(v)?.split(".")[0] ?? 0);
+
+// Concept : même verdict que les verrous (guard-edit, stop-gate, pre-commit).
+const conceptValid =
+  spawnSync(process.execPath, ["scripts/check-concept.mjs", "--quiet"], {
+    timeout: 10_000,
+  }).status === 0;
+
+const checks = {
+  node: node !== null && major(node) >= 24,
+  pnpm: pnpm !== null && major(pnpm) >= 10,
+  git: git !== null,
+  gh: gh !== null,
+  vercel: vercel !== null,
+  ghAuth: ghAuth !== null,
+  vercelAuth: vercelUser !== null,
+  deps: existsSync("node_modules/.modules.yaml"),
+  envLocal: existsSync(".env.local"),
+  origin: origin !== null,
+  vercelLinked: existsSync(".vercel/project.json"),
+  concept: conceptValid,
+};
+
+const tool = (label, raw, ok, min) => {
+  if (raw === null) return `${label} : ❌ ABSENT`;
+  const v = versionOf(raw);
+  return ok
+    ? `${label} : ✅ ${v}`
+    : `${label} : ❌ ${v} — trop ancien (minimum ${min})`;
+};
+
+const toolsOk =
+  checks.node && checks.pnpm && checks.git && checks.gh && checks.vercel;
+const authOk = checks.ghAuth && checks.vercelAuth;
+const envReady = toolsOk && checks.deps && checks.envLocal && authOk;
+
+const logins = [
+  checks.ghAuth ? null : "`gh auth login`",
+  checks.vercelAuth ? null : "`vercel login`",
+]
+  .filter(Boolean)
+  .join(" puis ");
+
+// Prochaine étape calculée (ordre strict, première condition vraie) : l'agent
+// n'a pas à la deviner.
+const steps = [
+  [!toolsOk, "/install-tools — installer les outils manquants"],
+  [
+    !checks.deps || !checks.envLocal,
+    "/install-tools — finir la préparation (pnpm install, .env.local)",
+  ],
+  [
+    !authOk,
+    `connexion de l'étudiant : ${logins} (à lancer par l'étudiant dans le terminal)`,
+  ],
+  [!checks.concept, "/concept — définir le MVP (obligatoire avant tout code)"],
+  [
+    !checks.origin || !checks.vercelLinked,
+    "/bootstrap — mettre le projet sur GitHub et en ligne sur Vercel",
+  ],
+];
+const next =
+  steps.find(([todo]) => todo)?.[1] ??
+  "aucune — tout est prêt : réponds à la demande de l'étudiant";
+
+const authLine = (installed, ok, okText, login) => {
+  if (!installed) return "— (outil absent)";
+  return ok ? `✅ ${okText}` : `❌ non connecté → \`${login}\``;
+};
 
 const context = [
-  "=== ÉTAT ONBOARDING (généré automatiquement à l'ouverture de la session) ===",
-  line("Node.js", versionOf(node)),
-  line("pnpm", versionOf(pnpm)),
-  line("Git", versionOf(git)),
-  line("GitHub CLI", versionOf(gh)),
-  line("Vercel CLI", versionOf(vercel)),
-  `Dépendances (node_modules) : ${existsSync("node_modules") ? "✅ installées" : "❌ absentes (pnpm install requis)"}`,
-  `Fichier .env.local : ${existsSync(".env.local") ? "✅ présent" : "❌ absent"}`,
-  `Repo GitHub (remote origin) : ${origin ? `✅ ${origin}` : "❌ non lié"}`,
-  `Projet Vercel (.vercel/) : ${existsSync(".vercel/project.json") ? "✅ lié" : "❌ non lié"}`,
-  `Concept MVP (.concept/MVP.md) : ${conceptValid ? "✅ validé" : "❌ à définir (verrou : aucun code applicatif possible avant validation)"}`,
+  "=== ÉTAT ONBOARDING (diagnostic automatique) ===",
+  tool("Node.js", node, checks.node, "24"),
+  tool("pnpm", pnpm, checks.pnpm, "10"),
+  tool("Git", git, checks.git),
+  tool("GitHub CLI", gh, checks.gh),
+  tool("Vercel CLI", vercel, checks.vercel),
+  `Connexion GitHub (gh auth status) : ${authLine(checks.gh, checks.ghAuth, "connecté", "gh auth login")}`,
+  `Connexion Vercel (vercel whoami) : ${authLine(checks.vercel, checks.vercelAuth, String(vercelUser), "vercel login")}`,
+  `Dépendances (node_modules) : ${checks.deps ? "✅ installées" : "❌ absentes (pnpm install requis)"}`,
+  `Fichier .env.local : ${checks.envLocal ? "✅ présent" : "❌ absent (copie de .env.example requise)"}`,
+  `Repo GitHub (remote origin) : ${checks.origin ? `✅ ${origin}` : "❌ non lié"}`,
+  `Projet Vercel (.vercel/) : ${checks.vercelLinked ? "✅ lié" : "❌ non lié"}`,
+  `Concept MVP (.concept/MVP.md) : ${checks.concept ? "✅ validé" : "❌ à définir (verrou : aucun code applicatif possible avant validation)"}`,
+  "",
+  `➡️ PROCHAINE ÉTAPE : ${next}`,
   "",
   "DIRECTIVES TUTORAT (applique-les dès le premier message de l'étudiant) :",
-  "1. Langage : réponds toujours en français simple, sans jargon, en tutoyant l'étudiant (règle absolue — voir AGENTS.md ; un rappel est aussi réinjecté à chaque message).",
-  "2. Accueille brièvement et propose l'étape suivante adaptée à l'état ci-dessus, DANS CET ORDRE :",
-  "   a. un outil est ❌ ABSENT → skill /install-tools (tu installes tout, l'étudiant approuve ; seuls gh auth login / vercel login restent à lui) ;",
-  "   b. outils ✅ mais Concept MVP ❌ → propose le skill /concept AVANT TOUT CODE (le code applicatif est mécaniquement bloqué tant que le concept n'est pas validé ; l'étudiant le sait grâce à la question /concept) ;",
-  "   c. outils ✅ et concept ✅ mais repo/Vercel ❌ → propose /bootstrap ;",
-  "   d. tout est ✅ → réponds à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
-  "3. Avant TOUT commit : consulte et applique la procédure .check/VERIFICATION.md (un rappel est aussi injecté à chaque commande `git commit`).",
-  "4. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
+  "1. Langage : français simple, sans jargon, tutoiement (règle absolue — voir AGENTS.md).",
+  "2. Premier message : salue l'étudiant en 1 phrase, résume son état en 2-3 puces simples (ce qui est prêt / ce qui manque), puis propose UNIQUEMENT la PROCHAINE ÉTAPE ci-dessus et demande son accord. Ne liste pas tout le diagnostic.",
+  "3. Si sa demande contredit l'ordre (ex. coder sans concept) : explique gentiment pourquoi on fait d'abord la prochaine étape, puis propose-la.",
+  "4. Avant TOUT commit : applique la procédure .check/VERIFICATION.md.",
+  "5. Pour revérifier plus tard : `pnpm diagnostic`. Ne recopie pas ce contexte dans ta réponse.",
 ].join("\n");
 
-// Mode manuel (`--human`) : l'agent le lance lui-même sous les IDE sans hook
-// de session (ex. Cascade/Windsurf, où SessionStart n'existe pas) et lit la
-// sortie texte directement — mêmes informations, mêmes directives.
-if (process.argv.includes("--human")) {
+if (human) {
   console.log(context);
-  process.exit(0);
+  process.exit(strict && !envReady ? 1 : 0);
 }
 
 console.log(

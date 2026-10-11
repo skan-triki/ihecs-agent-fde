@@ -12,6 +12,8 @@
       "Exec(pnpm env:check)",
       "Exec(pnpm check)",
       "Exec(pnpm verify)",
+      "Exec(pnpm diagnostic)",
+      "Exec(pnpm concept:check)",
       "Exec(pnpm build)",
       "Exec(git status)",
       "Exec(git diff)",

@@ -18,6 +18,7 @@
     "knip": "knip",
     "concept:check": "node scripts/check-concept.mjs",
     "env:check": "node scripts/check-env.mjs",
+    "diagnostic": "node scripts/hooks/session-onboarding.mjs --human --strict",
     "check": "pnpm env:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip",
     "verify": "pnpm check && pnpm build",
     "prepare": "husky"

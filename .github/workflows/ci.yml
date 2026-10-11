@@ -33,6 +33,23 @@ jobs:
       - name: Vérification complète
         run: pnpm verify
 
+  concept:
+    name: Concept MVP validé (.concept/MVP.md)
+    # Le template lui-même n'a pas de concept : le contrôle ne s'applique
+    # qu'aux dépôts étudiants créés depuis le template.
+    if: ${{ !github.event.repository.is_template }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Vérification du concept
+        run: node scripts/check-concept.mjs
+
   commits:
     name: Messages de commit (Conventional Commits)
     if: github.event_name == 'pull_request'
