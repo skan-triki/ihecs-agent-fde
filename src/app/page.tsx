@@ -1,5 +1,4 @@
 import { SiteHeader } from "@/components/site-header";
-import { Button } from "@/design-system/components/button";
 import {
   Card,
   CardDescription,
@@ -40,26 +39,6 @@ export default function HomePage() {
             Décris ton idée, construis-la avec ton agent IA, fais-la vérifier,
             déploie-la.
           </p>
-          <div className="flex gap-3">
-            <Button asChild>
-              <a
-                href="https://ui.shadcn.com/docs/components"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Composants shadcn/ui
-              </a>
-            </Button>
-            <Button variant="outline" asChild>
-              <a
-                href="https://nextjs.org/docs"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Documentation Next.js
-              </a>
-            </Button>
-          </div>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
