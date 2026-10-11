@@ -8,7 +8,14 @@ const git = (args) =>
     maxBuffer: 64 * 1024 * 1024,
   });
 
-const tracked = String(git(["ls-files"]).stdout).split(/\r?\n/);
+const ls = git(["ls-files"]);
+if (ls.status !== 0) {
+  console.error(
+    "✗ Secrets : dépôt git illisible, contrôle impossible (refusé par sécurité).",
+  );
+  process.exit(1);
+}
+const tracked = String(ls.stdout).split(/\r?\n/);
 const envFiles = tracked.filter((f) => /(^|\/)\.env(?!\.example$)/.test(f));
 
 const grep = git([

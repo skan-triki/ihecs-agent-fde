@@ -69,10 +69,31 @@ for (const dir of RULE_DIRS) {
   }
 }
 
+// .gitignore : `vercel link` y ajoute ses propres lignes. Toutes les lignes
+// officielles doivent rester présentes ; ignorer davantage de fichiers ne
+// contourne aucune règle, c'est donc toléré.
+const lines = (s) =>
+  new Set(
+    s
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
+
 for (const p of RULE_FILES) {
   const o = official(p);
   const l = local(p);
   if (o === null && l === null) continue;
+  if (p === ".gitignore" && o !== null && l !== null) {
+    const mine = lines(l);
+    const removed = [...lines(o)].filter((x) => !mine.has(x));
+    if (removed.length > 0) {
+      errors.push(
+        `modifié : .gitignore (lignes retirées : ${removed.join(", ")})`,
+      );
+    }
+    continue;
+  }
   if (o !== l) errors.push(`${l === null ? "supprimé" : "modifié"} : ${p}`);
 }
 
