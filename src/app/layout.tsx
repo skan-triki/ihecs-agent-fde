@@ -20,7 +20,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: env.NEXT_PUBLIC_APP_NAME,
-  description: "MVP réalisé dans le cadre du cours de développement IA — IHECS",
+  description:
+    "Construis ton idée : de la définition du concept au déploiement, avec des contrôles qualité automatiques.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

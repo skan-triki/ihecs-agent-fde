@@ -20,7 +20,7 @@ export const env = createEnv({
     AI_GATEWAY_API_KEY: z.string().min(1).optional(),
   },
   client: {
-    NEXT_PUBLIC_APP_NAME: z.string().min(1).default("MVP IHECS"),
+    NEXT_PUBLIC_APP_NAME: z.string().min(1).default("IHECS"),
   },
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,

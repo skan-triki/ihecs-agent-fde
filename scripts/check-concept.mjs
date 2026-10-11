@@ -11,6 +11,11 @@ const args = process.argv.slice(2);
 const quiet = args.includes("--quiet");
 const staged = args.includes("--staged");
 
+// Bypass enseignant : identique à celui de guard-edit. Le concept reste honnête
+// via `pnpm concept:check` (sans --staged), mais un mainteneur du template peut
+// versionner le code applicatif du starter avant que le concept ne soit rempli.
+if (staged && process.env.IHECS_TEACHER_BYPASS === "true") process.exit(0);
+
 if (staged) {
   const diff = spawnSync("git", ["diff", "--cached", "--name-only"], {
     encoding: "utf8",
