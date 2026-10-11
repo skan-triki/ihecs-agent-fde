@@ -95,7 +95,9 @@ const isProtected =
   /^scripts\//.test(relPath) ||
   /^\.check\//.test(relPath) ||
   /\.github\/workflows\/[^/]+$/.test(relPath) ||
-  /^\.devin\/(agents|skills|mcp_config\.json|config\.json)\//.test(relPath) ||
+  /^\.devin\/(agents|skills|workflows|mcp_config\.json|config\.json)\//.test(
+    relPath,
+  ) ||
   /^\.devin\/(config\.json|mcp_config\.json|hooks(\.v1)?\.json)$/.test(relPath);
 
 if (isProtected) {
