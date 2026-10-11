@@ -1,10 +1,4 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": [
-    "src/components/ui/**",
-    "scripts/hooks/**",
-    ".devin/**",
-    ".husky/**",
-    ".github/**"
-  ]
+  "ignore": ["src/components/ui/**", "scripts/hooks/**"]
 }
