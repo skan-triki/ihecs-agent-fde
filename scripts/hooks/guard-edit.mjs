@@ -3,6 +3,7 @@
 // Sortie code 2 = action bloquée, `reason` remontée à l'agent.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
 
 let input = "";
 try {
@@ -64,18 +65,23 @@ const protectedFiles = new Set([
   "hooks.v1.json",
 ]);
 
+// Les outils envoient des chemins ABSOLUS : les règles portant sur des
+// dossiers (scripts/, .check/, .devin/, src/…) s'appliquent au chemin RELATIF
+// à la racine du projet (les hooks s'exécutent depuis cette racine).
+const relFromCwd = relative(process.cwd(), target).replaceAll("\\", "/");
+const inProject =
+  relFromCwd !== "" && !relFromCwd.startsWith("..") && !isAbsolute(relFromCwd);
 const normNoDrive = norm.replace(/^[A-Za-z]:\//, "");
+const relPath = inProject ? relFromCwd : normNoDrive;
+
 const isProtected =
   protectedFiles.has(base) ||
-  protectedFiles.has(normNoDrive) ||
-  /^scripts\//.test(normNoDrive) ||
-  /\.github\/workflows\/[^/]+$/.test(normNoDrive) ||
-  /^\.devin\/(agents|skills|mcp_config\.json|config\.json)\//.test(
-    normNoDrive,
-  ) ||
-  /^\.devin\/(config\.json|mcp_config\.json|hooks\.v1\.json)$/.test(
-    normNoDrive,
-  );
+  protectedFiles.has(relPath) ||
+  /^scripts\//.test(relPath) ||
+  /^\.check\//.test(relPath) ||
+  /\.github\/workflows\/[^/]+$/.test(relPath) ||
+  /^\.devin\/(agents|skills|mcp_config\.json|config\.json)\//.test(relPath) ||
+  /^\.devin\/(config\.json|mcp_config\.json|hooks\.v1\.json)$/.test(relPath);
 
 if (isProtected) {
   console.log(
@@ -103,7 +109,7 @@ if (/^\.env(\.|$)/.test(base) && base !== ".env.example") {
 // CONCEPT AVANT CODE : aucune écriture dans src/** tant que le concept MVP
 // n'est pas validé dans .concept/MVP.md. L'agent est mécaniquement renvoyé
 // vers le skill /concept (interview guidée avec l'étudiant).
-if (/^src\//.test(normNoDrive)) {
+if (/^src\//.test(relPath)) {
   const concept = spawnSync(
     process.execPath,
     ["scripts/check-concept.mjs", "--quiet"],

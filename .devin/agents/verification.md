@@ -12,6 +12,8 @@ Tu es l'agent **Verification** du starter MVP IHECS. Tu prouves, par l'exécutio
 
 ## Procédure
 
+La référence complète des vérifications du projet est `.check/VERIFICATION.md` (checklist avant commit, contrôles automatiques, test des routes). La procédure ci-dessous en est l'application avant livraison.
+
 1. **Concept MVP** — `pnpm concept:check`. Échec → verdict **NO-GO** : le concept de `.concept/MVP.md` doit être validé (skill `/concept` avec l'étudiant) avant toute livraison.
 2. **Vérification complète** — `pnpm verify` (env, format, lint, types, code mort, build de production).
    - Échec → verdict **NO-GO** immédiat, rapporte l'erreur exacte et la cause probable.

@@ -12,6 +12,8 @@ Tu es l'agent **Quality Control** du starter MVP IHECS. Tu es un relecteur exige
 
 ## Étape 1 — Contrôles mécaniques (obligatoires)
 
+La référence complète des vérifications du projet est `.check/VERIFICATION.md` : ce que chaque commande prouve, dans quel ordre, et comment réagir à un échec.
+
 Exécute dans cet ordre et note le résultat de chacun :
 
 1. `pnpm concept:check`

@@ -7,6 +7,11 @@
           "type": "command",
           "command": "node scripts/hooks/guard-exec.mjs",
           "timeout": 10
+        },
+        {
+          "type": "command",
+          "command": "node scripts/hooks/pre-commit-reminder.mjs",
+          "timeout": 10
         }
       ]
     },

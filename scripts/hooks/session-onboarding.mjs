@@ -74,7 +74,8 @@ const context = [
   "   b. outils ✅ mais Concept MVP ❌ → propose le skill /concept AVANT TOUT CODE (le code applicatif est mécaniquement bloqué tant que le concept n'est pas validé ; l'étudiant le sait grâce à la question /concept) ;",
   "   c. outils ✅ et concept ✅ mais repo/Vercel ❌ → propose /bootstrap ;",
   "   d. tout est ✅ → réponds à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
-  "3. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
+  "3. Avant TOUT commit : consulte et applique la procédure .check/VERIFICATION.md (un rappel est aussi injecté à chaque commande `git commit`).",
+  "4. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
 ].join("\n");
 
 console.log(

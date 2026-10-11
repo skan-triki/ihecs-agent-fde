@@ -41,6 +41,8 @@ Vous pouvez aussi tout déclencher explicitement :
 | `/quality-check` | Pendant le développement       | Audit qualité indépendant : contrôles auto + relecture Next/React/Tailwind/shadcn                                           |
 | `/ship`          | Pour livrer une fonctionnalité | Qualité → corrections → build & routes → commit conventionnel → branche → PR → preview Vercel                               |
 
+> Avant chaque commit, l'agent applique la procédure complète de `.check/VERIFICATION.md` (liste de contrôle, commandes, contrôles automatiques) — un rappel lui est aussi injecté à chaque `git commit`.
+
 Également utiles : `/install-tools`, `/setup-github`, `/setup-vercel`, `/env-vars ajouter <NOM>`, `/env-vars audit`, `/verify`, `/design-system`, `/nextjs-react-patterns`, `/bootstrap`.
 
 ## Commandes manuelles
@@ -84,11 +86,12 @@ Règles : une clé secrète ne prend **jamais** le préfixe `NEXT_PUBLIC_` ; dan
 | Supply chain       | pnpm `minimumReleaseAge: 7 jours`, lockfile figé en CI, Dependabot avec cooldown 7 jours, actions GitHub épinglées par SHA                                                                                                                                                                                                                                                         | Les dépendances fraîchement publiées (risque de supply chain) sont refusées |
 | Sécurité           | `.env*` gitignorés, `process.env` restreint, scan de secrets, `poweredByHeader` désactivé                                                                                                                                                                                                                                                                                          | Pas de fuite de secrets                                                     |
 
-Fichiers verrouillés (réservés à l'enseignant) : `AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/*`, `.github/*`, `scripts/*`, `.devin/agents/*`, `.devin/skills/*`, `.devin/config.json`, `.devin/hooks.v1.json`, `pnpm-workspace.yaml`, `knip.json`, `lint-staged.config.mjs`.
+Fichiers verrouillés (réservés à l'enseignant) : `AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/*`, `.github/*`, `scripts/*`, `.check/*`, `.devin/agents/*`, `.devin/skills/*`, `.devin/config.json`, `.devin/hooks.v1.json`, `pnpm-workspace.yaml`, `knip.json`, `lint-staged.config.mjs`.
 
 ## Structure du projet
 
 ```
+├── .check/                    # Procédure de vérification que l'agent applique avant chaque commit
 ├── .devin/                    # Configuration de l'agent IA (règles, agents, skills, hooks, MCP)
 ├── .concept/                  # Concept de TON MVP — interview /concept, verrouillé tant que non validé
 ├── .github/                   # CI + Dependabot + template de PR

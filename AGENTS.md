@@ -32,7 +32,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - **pnpm uniquement** (npm/yarn/npx/bun interdits — hooks ; seule exception : `npm i -g <outil>` pour installer les outils système). Node ≥ 24.
 - **Stack** : Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · déploiement Vercel (URL `*.vercel.app`, jamais de domaine perso).
-- Les fichiers de qualité (`AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/config.json`, `.devin/hooks.v1.json`, `scripts/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
+- Les fichiers de qualité (`AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/config.json`, `.devin/hooks.v1.json`, `scripts/`, `.check/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
 
 ## Workflow
 
@@ -40,6 +40,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Nouvelle dépendance : `pnpm add <pkg>` (jamais `-D` sauf outil de dev ; jamais de version publiée il y a < 7 jours — `pnpm-workspace.yaml` impose `minimumReleaseAge`).
 - Variables d'environnement : uniquement via `import { env } from "@/env"` ; pour en ajouter une, utilise le skill `/env-vars`.
 - Avant de considérer une tâche terminée : `pnpm check` doit passer à 100 % (env, format, lint `--max-warnings=0`, types, code mort).
+- **Avant TOUT commit : lis et applique la procédure `.check/VERIFICATION.md`** (checklist ordonnée, contrôles automatiques, test des routes, interdictions). Un rappel est injecté dans ton contexte à chaque commande `git commit`.
 - Pour livrer : utilise le skill `/ship`. Pour un audit qualité : `/quality-check`.
 
 ## Skills techniques (consulte-les avant d'écrire le code correspondant)
