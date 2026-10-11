@@ -12,12 +12,12 @@ triggers:
 
 Tout le design vit dans **un seul dossier** — `src/design-system/` — et nulle part ailleurs :
 
-| Fichier / dossier                      | Rôle                                                                                          |
-| -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `src/design-system/globals.css`        | **Le seul endroit** où l'on définit couleurs, rayons, polices, thème clair/sombre (variables) |
-| `src/design-system/components/`        | Composants shadcn/ui (le seul dossier de composants du design system)                         |
-| `src/design-system/theme-provider.tsx` | Gestion du thème (next-themes)                                                                |
-| `src/design-system/utils.ts`           | `cn()` — la seule façon de fusionner des classes                                              |
+| Fichier / dossier                      | Rôle                                                                                                                                      |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/design-system/globals.css`        | **Le seul endroit** où l'on définit couleurs, rayons, polices, thème clair/sombre (variables)                                             |
+| `src/design-system/components/`        | Composants shadcn/ui + composants maison de la marque (`logo.tsx`, `theme-toggle.tsx` : bascule clair/sombre, thème par défaut « light ») |
+| `src/design-system/theme-provider.tsx` | Gestion du thème (next-themes)                                                                                                            |
+| `src/design-system/utils.ts`           | `cn()` — la seule façon de fusionner des classes                                                                                          |
 
 - N'importe où ailleurs, seuls les **tokens sémantiques** sont autorisés : ESLint transforme toute couleur brute (`bg-zinc-900`, `text-red-500`, `bg-[#1e40af]`, `bg-black`) en erreur.
 - On n'importe le design system QUE depuis `@/design-system/…` : importer depuis `@/components/ui/*` ou `@/lib/utils` est une erreur de lint.
