@@ -3,19 +3,29 @@
 // BLOQUÉ, chaque commande légitime du cours AUTORISÉE. Lancé par la CI
 // (`pnpm guards:test`) : une régression des garde-fous casse la CI.
 import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
+import { prodPendingMarker } from "./lib/readiness.mjs";
 
 const env = { ...process.env };
 delete env.IHECS_TEACHER_BYPASS;
 
-const runHook = (script, payload) =>
+const runHook = (script, payload, extraEnv = {}) =>
   spawnSync(process.execPath, [script], {
     input: JSON.stringify(payload),
     encoding: "utf8",
-    env,
+    env: { ...env, ...extraEnv },
     timeout: 60_000,
   }).status;
+
+// Poste « prêt » pour les tests (CI : pas de .env.local). Un .env.local réel
+// n'est jamais touché.
+const createdEnvLocal = !existsSync(".env.local");
+if (createdEnvLocal) copyFileSync(".env.example", ".env.local");
+const marker = prodPendingMarker();
+rmSync(marker, { force: true });
 
 const ROOT = process.cwd();
 const abs = (p) => resolve(ROOT, p);
@@ -245,7 +255,65 @@ for (const fmt of ["cli", "cascade"]) {
       runHook("scripts/hooks/guard-edit.mjs", editPayload(p, s)) === 0,
       `${p} ← ${s.slice(0, 30)}`,
     );
+
+  // Étapes 2-3 : installation pas terminée → ni concept ni composants.
+  if (createdEnvLocal) {
+    console.log(`\n=== ${fmt} : ordre — installation pas terminée ===`);
+    rmSync(".env.local");
+    report(
+      runHook(
+        "scripts/hooks/guard-edit.mjs",
+        editPayload(".concept/MVP.md", "x"),
+      ) === 2,
+      "concept bloqué tant que .env.local manque",
+    );
+    report(
+      runHook(
+        "scripts/hooks/guard-exec.mjs",
+        execPayload("pnpm exec shadcn add button"),
+      ) === 2,
+      "shadcn add bloqué tant que .env.local manque",
+    );
+    copyFileSync(".env.example", ".env.local");
+  }
+
+  // Étape 5 : dépôt étudiant sans Vercel lié → pas de livraison.
+  console.log(
+    `\n=== ${fmt} : ordre — mise en route pas terminée (dépôt étudiant) ===`,
+  );
+  const student = { GITHUB_REPOSITORY: "etudiant/mon-mvp" };
+  for (const c of ["git push -u origin feat/x", "gh pr create --fill"]) {
+    report(
+      runHook("scripts/hooks/guard-exec.mjs", execPayload(c), student) === 2,
+      `${c} (sans Vercel lié)`,
+    );
+  }
+
+  // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.
+  console.log(`\n=== ${fmt} : ordre — production à vérifier ===`);
+  writeFileSync(marker, "test");
+  for (const c of [
+    "git push -u origin feat/y",
+    "gh pr create --fill",
+    "gh pr merge 1 --squash",
+  ]) {
+    report(
+      runHook("scripts/hooks/guard-exec.mjs", execPayload(c)) === 2,
+      `${c} (production non vérifiée)`,
+    );
+  }
+  report(
+    runHook("scripts/hooks/guard-exec.mjs", execPayload("pnpm prod:check")) ===
+      0,
+    "pnpm prod:check autorisé",
+  );
+  report(
+    runHook("scripts/hooks/stop-gate.mjs", { stop_hook_active: false }) === 2,
+    "fin de tour bloquée (production non vérifiée)",
+  );
+  rmSync(marker, { force: true });
 }
 
+if (createdEnvLocal) rmSync(".env.local", { force: true });
 console.log(`\n${fails === 0 ? "TOUT EST CONFORME" : `${fails} ÉCHEC(S)`}`);
 process.exit(fails ? 1 : 0);

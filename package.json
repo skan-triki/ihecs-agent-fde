@@ -22,6 +22,7 @@
     "env:init": "node scripts/init-env.mjs",
     "env:public": "node scripts/vercel-env-public.mjs",
     "routes:check": "node scripts/http-check.mjs",
+    "prod:check": "node scripts/check-production.mjs",
     "secrets:check": "node scripts/secrets-check.mjs",
     "rules:check": "node scripts/check-integrity.mjs",
     "rules:sync": "node scripts/sync-rules.mjs",

@@ -39,6 +39,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Commandes terminal : liste blanche.** Seules les commandes du cours passent (scripts `pnpm`, `pnpm add/remove`, `pnpm exec` d'outils du projet, git courant, `gh`, `vercel`, installation des outils, `node scripts/…`, lecture de fichiers du projet). Tout le reste est refusé : `node -e`, interpréteurs, redirections vers un fichier, `rm`/`sed`, variables en préfixe, `git commit -n`, push direct sur `main`, fusion de PR avec une CI non verte… Le détail est dans `.check/VERIFICATION.md` §5.
 - **Fichiers : uniquement avec l'outil d'édition, uniquement dans le projet**, jamais dans les règles. Pour un test HTTP : `pnpm routes:check`. Pour créer `.env.local` : `pnpm env:init`. Pour une variable publique Vercel : `pnpm env:public <NEXT_PUBLIC_NOM> <valeur>`.
 - Si une commande légitime est refusée : n'essaie PAS de la reformuler pour passer. Explique le besoin à l'étudiant et signale-le à l'enseignant.
+- **L'ordre des étapes est verrouillé** : installation terminée (`pnpm diagnostic`) avant le concept et le code ; GitHub + Vercel liés (`/bootstrap`) avant toute livraison ; après chaque fusion, `pnpm prod:check` avant toute nouvelle livraison, toute écriture dans `src/` et la fin de ton tour.
 - Les règles du cours doivent rester identiques au template officiel (`pnpm rules:check` au push, en CI et au build Vercel). Réparation : `pnpm rules:sync`.
 
 ## Workflow

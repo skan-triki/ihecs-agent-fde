@@ -2,7 +2,9 @@
 // vérifie lint et types AVANT d'arrêter l'agent. Bloque une seule fois (stop_hook_active)
 // pour éviter toute boucle infinie.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+
+import { prodPendingMarker } from "../lib/readiness.mjs";
 
 let input = "";
 try {
@@ -19,6 +21,19 @@ try {
 }
 
 if (payload.stop_hook_active) process.exit(0);
+
+// LIVRAISON (étape 7) : une PR a été fusionnée pendant la session mais la
+// production n'a pas été vérifiée → on ne conclut pas.
+if (existsSync(prodPendingMarker())) {
+  console.log(
+    JSON.stringify({
+      decision: "block",
+      reason:
+        "Une PR a été fusionnée mais la mise en production n'a pas été vérifiée. Lance `pnpm prod:check` (il attend que Vercel serve le dernier commit puis teste la page) et donne le résultat à l'étudiant avant de conclure.",
+    }),
+  );
+  process.exit(2);
+}
 
 const git = (args) => {
   const r = spawnSync("git", args, {

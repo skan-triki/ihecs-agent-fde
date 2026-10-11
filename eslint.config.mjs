@@ -229,6 +229,15 @@ const eslintConfig = defineConfig([
     },
   },
 
+  // Scripts Node du cours : l'alias `@/` n'existe que dans `src/` (TypeScript),
+  // les scripts partagent leurs modules par chemins relatifs (scripts/lib/).
+  {
+    files: ["scripts/**"],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
+
   prettier,
 
   globalIgnores([

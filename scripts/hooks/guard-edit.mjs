@@ -2,8 +2,10 @@
 // garde-fous et l'obligation « concept avant code ».
 // Sortie code 2 = action bloquée, `reason` remontée à l'agent.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
+
+import { devMissing, prodPendingMarker } from "../lib/readiness.mjs";
 
 let input = "";
 try {
@@ -119,10 +121,29 @@ if (/^\.env(\.|$)/.test(base) && base !== ".env.example") {
   );
 }
 
+// ORDRE DES ÉTAPES (2-3) : pas de concept ni de code tant que le poste n'est
+// pas prêt (Node ≥ 24, dépendances installées, .env.local).
+if (/^(src|public|\.concept)\//.test(relPath)) {
+  const missing = devMissing();
+  if (missing.length > 0) {
+    block(
+      `Étape d'installation pas terminée : il manque ${missing.join(", ")}. Lance d'abord le skill /install-tools, puis vérifie avec \`pnpm diagnostic\`.`,
+    );
+  }
+}
+
+// LIVRAISON (7) : une fusion a eu lieu mais la production n'a pas été
+// vérifiée → on ne reprend pas le développement avant `pnpm prod:check`.
+if (/^(src|public)\//.test(relPath) && existsSync(prodPendingMarker())) {
+  block(
+    "La dernière livraison n'a pas été vérifiée en production. Lance `pnpm prod:check` avant de reprendre le développement.",
+  );
+}
+
 // CONCEPT AVANT CODE : aucune écriture dans src/** tant que le concept MVP
 // n'est pas validé dans .concept/MVP.md. L'agent est mécaniquement renvoyé
 // vers le skill /concept (interview guidée avec l'étudiant).
-if (/^src\//.test(relPath)) {
+if (/^(src|public)\//.test(relPath)) {
   const concept = spawnSync(
     process.execPath,
     ["scripts/check-concept.mjs", "--quiet"],

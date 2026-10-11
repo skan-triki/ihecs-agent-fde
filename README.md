@@ -60,6 +60,7 @@ Vous pouvez aussi tout déclencher explicitement :
 | `pnpm diagnostic`                   | État de la machine et du projet + prochaine étape à suivre              |
 | `pnpm rules:check` / `rules:sync`   | Vérifie / rétablit les règles du cours (versions officielles)           |
 | `pnpm routes:check /`               | Teste que les pages répondent (HTTP 2xx)                                |
+| `pnpm prod:check`                   | Prouve que la production Vercel sert le dernier commit de `main`        |
 | `pnpm check`                        | Tous les contrôles : env, format, lint (zéro warning), types, code mort |
 | `pnpm verify`                       | `check` + build de production                                           |
 | `pnpm lint` / `pnpm lint:fix`       | ESLint (aucun warning toléré)                                           |

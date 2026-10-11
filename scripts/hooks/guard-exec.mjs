@@ -7,8 +7,15 @@
 // Les fichiers s'écrivent UNIQUEMENT avec les outils d'édition, contrôlés par
 // guard-edit. Sortie code 2 = commande bloquée, avec la raison.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
+
+import {
+  bootstrapMissing,
+  devMissing,
+  prodPendingMarker,
+} from "../lib/readiness.mjs";
+import { isTemplateRepo } from "../lib/template.mjs";
 
 let payload = {};
 try {
@@ -205,6 +212,18 @@ const run = (cmd, args) =>
     timeout: 20_000,
   });
 
+// Ordre des étapes 5 et 7 pour toute livraison (push d'une branche, PR, fusion).
+const deliveryBlocked = () => {
+  if (existsSync(prodPendingMarker())) {
+    return "La dernière fusion n'a pas été vérifiée en production. Lance `pnpm prod:check` avant toute nouvelle livraison.";
+  }
+  if (isTemplateRepo()) return null;
+  const missing = bootstrapMissing();
+  return missing.length > 0
+    ? `Mise en route pas terminée : il manque ${missing.join(" et ")}. Lance d'abord le skill /bootstrap.`
+    : null;
+};
+
 const MSG = {
   npm: "npm est interdit pour ce projet : utilise pnpm (`pnpm add`, `pnpm dev`…). Seule exception : `npm install -g pnpm` ou `npm install -g vercel`.",
   npx: "npx est interdit : utilise `pnpm exec <outil>` (version figée du projet).",
@@ -263,12 +282,14 @@ const rules = {
       ];
       if (!BIN.includes(rest[0] ?? ""))
         return `\`pnpm exec\` est limité aux outils du projet : ${BIN.join(", ")}.`;
-      if (
-        rest[0] === "shadcn" &&
-        ["add", "create"].includes(rest[1] ?? "") &&
-        !conceptValid()
-      ) {
-        return "Verrou « concept avant code » : on n'installe pas de composants avant d'avoir défini le MVP. Lance le skill /concept avec l'étudiant, puis `pnpm concept:check`.";
+      if (rest[0] === "shadcn" && ["add", "create"].includes(rest[1] ?? "")) {
+        const missing = devMissing();
+        if (missing.length > 0) {
+          return `Installation pas terminée (il manque ${missing.join(", ")}) : lance d'abord /install-tools.`;
+        }
+        if (!conceptValid()) {
+          return "Verrou « concept avant code » : on n'installe pas de composants avant d'avoir défini le MVP. Lance le skill /concept avec l'étudiant, puis `pnpm concept:check`.";
+        }
       }
       return null;
     }
@@ -392,8 +413,10 @@ const rules = {
           if (exists) {
             return "Pousser directement sur `main` est interdit : crée une branche et passe par une PR (skill /ship). Seul le tout premier envoi de `main` est autorisé.";
           }
+          // Tout premier envoi de main (mise en route GitHub) : autorisé.
+          return null;
         }
-        return null;
+        return deliveryBlocked();
       }
       case "checkout":
         if (
@@ -502,26 +525,29 @@ const rules = {
     if (sub === "pr") {
       if (
         [
-          "create",
           "view",
           "checks",
           "list",
           "status",
           "diff",
           "comment",
-          "ready",
           "edit",
         ].includes(sub2 ?? "")
       )
         return null;
+      if (sub2 === "create" || sub2 === "ready") return deliveryBlocked();
       if (sub2 === "merge") {
         if (rest.includes("--admin"))
           return "`--admin` contourne les protections de GitHub : interdit.";
+        const blocked = deliveryBlocked();
+        if (blocked) return blocked;
         const pr = positional(rest)[0];
         const checks = run("gh", ["pr", "checks", ...(pr ? [pr] : [])]);
         if (checks.status !== 0) {
           return "Fusion refusée : la CI de cette PR n'est pas entièrement verte (ou est encore en cours). Attends `gh pr checks --watch`, corrige si besoin, puis fusionne.";
         }
+        // Fusion autorisée → la production devra être vérifiée (étape 7).
+        writeFileSync(prodPendingMarker(), new Date().toISOString());
         return null;
       }
     }

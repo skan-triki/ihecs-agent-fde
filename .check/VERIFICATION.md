@@ -95,6 +95,15 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 | CI GitHub                    | `rules:check`, `secrets:check`, `pnpm verify`, concept (dépôts étudiants), commitlint                                                                 |
 | Build Vercel (`vercel.json`) | concept + `rules:check` + `secrets:check` + `pnpm verify` : **un code non conforme n'est jamais mis en ligne**, même si tout le reste a été contourné |
 
+**Ordre des étapes (verrouillé) :**
+
+| Tant que…                                                   | …sont refusés                                                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| installation pas terminée (Node, dépendances, `.env.local`) | écriture dans `.concept/`, `src/`, `public/` ; `shadcn add`                            |
+| concept non validé                                          | écriture dans `src/`, `public/` ; `shadcn add` ; commit de `src/` ; CI et build Vercel |
+| GitHub ou Vercel non liés (dépôt étudiant)                  | push d'une branche, création et fusion de PR                                           |
+| production non vérifiée après une fusion                    | push, PR, fusion, écriture dans `src/`, fin de tour → `pnpm prod:check`                |
+
 Règles modifiées par erreur ? `pnpm rules:sync` remet les versions officielles.
 
 ## 6. Si un contrôle échoue : le protocole

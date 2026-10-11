@@ -1,7 +1,8 @@
 // Vérifie mécaniquement que src/env.ts et .env.example déclarent exactement les mêmes variables.
 import { readFileSync } from "node:fs";
 
-const IMPLICIT = new Set(["NODE_ENV"]);
+// Variables fournies par Node ou par Vercel : pas de ligne dans .env.example.
+const IMPLICIT = new Set(["NODE_ENV", "VERCEL_GIT_COMMIT_SHA"]);
 
 const envTs = readFileSync("src/env.ts", "utf8");
 const runtimeBlock = /runtimeEnv:\s*\{([\s\S]*?)\}/.exec(envTs)?.[1];

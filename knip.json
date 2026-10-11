@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": ["src/design-system/components/**", "scripts/hooks/**"],
+  "entry": ["scripts/hooks/*.mjs"],
+  "ignore": ["src/design-system/components/**"],
   "ignoreBinaries": ["vercel"]
 }
