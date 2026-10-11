@@ -5,7 +5,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
-import { devMissing, prodPendingMarker } from "../lib/readiness.mjs";
+import {
+  devMissing,
+  loginsMissing,
+  prodPendingMarker,
+} from "../lib/readiness.mjs";
 
 let input = "";
 try {
@@ -128,6 +132,18 @@ if (/^(src|public|\.concept)\//.test(relPath)) {
   if (missing.length > 0) {
     block(
       `Étape d'installation pas terminée : il manque ${missing.join(", ")}. Lance d'abord le skill /install-tools, puis vérifie avec \`pnpm diagnostic\`.`,
+    );
+  }
+}
+
+// ORDRE DES ÉTAPES (3→4) : comptes GitHub et Vercel connectés avant
+// l'idéation — l'installation ne s'arrête pas aux dépendances, elle inclut
+// les deux logins (personnels : lancés par l'étudiant lui-même).
+if (/^\.concept\//.test(relPath)) {
+  const missing = loginsMissing();
+  if (missing.length > 0) {
+    block(
+      `Idéation du MVP verrouillée : il manque ${missing.join(" et ")}. Ce sont des connexions personnelles : c'est l'étudiant qui les lance dans son terminal. Revérifie ensuite avec \`pnpm diagnostic\`, puis lance le skill /concept.`,
     );
   }
 }

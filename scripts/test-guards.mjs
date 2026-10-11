@@ -7,7 +7,7 @@ import { copyFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { prodPendingMarker } from "./lib/readiness.mjs";
+import { loginsCachePath, prodPendingMarker } from "./lib/readiness.mjs";
 
 const env = { ...process.env };
 delete env.IHECS_TEACHER_BYPASS;
@@ -291,6 +291,44 @@ for (const fmt of ["cli", "cascade"]) {
       );
     }
   }
+
+  // Étapes 3→4 : comptes GitHub/Vercel non connectés → pas d'idéation. Le
+  // résultat de la sonde est piloté par son cache (pas de vrai login en CI).
+  console.log(`\n=== ${fmt} : ordre — comptes non connectés ===`);
+  const loginCache = loginsCachePath();
+  writeFileSync(
+    loginCache,
+    JSON.stringify({
+      ts: Date.now(),
+      missing: ["GitHub (`gh auth login`)", "Vercel (`vercel login`)"],
+    }),
+  );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPayload(".concept/MVP.md", "x"),
+      student,
+    ) === 2,
+    ".concept/MVP.md bloqué tant que les comptes ne sont pas connectés",
+  );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPayload("README.md", "x"),
+      student,
+    ) === 0,
+    "README.md autorisé (le verrou ne vise que l'idéation)",
+  );
+  writeFileSync(loginCache, JSON.stringify({ ts: Date.now(), missing: [] }));
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPayload(".concept/MVP.md", "x"),
+      student,
+    ) === 0,
+    ".concept/MVP.md autorisé une fois les comptes connectés",
+  );
+  rmSync(loginCache, { force: true });
 
   // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.
   console.log(`\n=== ${fmt} : ordre — production à vérifier ===`);

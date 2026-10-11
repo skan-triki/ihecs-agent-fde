@@ -25,12 +25,13 @@ Template prêt à l'emploi pour construire et livrer un MVP d'application IA : N
 
 **Rien à installer à la main** : dès votre premier message dans le chat, l'agent détecte l'état de votre machine (outils, versions, connexions GitHub/Vercel, dépendances, concept, déploiement) et vous propose **une seule** prochaine étape. Vous pouvez relancer ce diagnostic à tout moment avec `pnpm diagnostic`.
 
-| Situation détectée                                                  | L'agent fait quoi                                                                                                                                                      |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Un outil manque (Node, pnpm, Git, GitHub CLI, Vercel CLI, éditeur…) | Il lance `/install-tools` : il **installe tout lui-même** (winget/brew), vous n'avez qu'à approuver — seuls `gh auth login` et `vercel login` restent à faire par vous |
-| Outils OK mais le concept du MVP n'est pas défini                   | Il lance `/concept` : une interview guidée qui remplit `.concept/MVP.md` avec vous — **aucun code n'est possible avant** (verrou automatique)                          |
-| Outils OK, projet pas encore sur GitHub/Vercel                      | Il propose `/bootstrap` : dépôt GitHub, projet Vercel, variables, déploiement `*.vercel.app`, vérification                                                             |
-| Tout est prêt                                                       | Il répond à votre demande (`pnpm dev` pour coder sur http://localhost:3000)                                                                                            |
+| Situation détectée                                                  | L'agent fait quoi                                                                                                                                                                                     |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Un outil manque (Node, pnpm, Git, GitHub CLI, Vercel CLI, éditeur…) | Il lance `/install-tools` : il **installe tout lui-même** (winget/brew), vous n'avez qu'à approuver — seuls `gh auth login` et `vercel login` restent à faire par vous                                |
+| Outils installés mais comptes non connectés                         | Il vous fait faire `gh auth login` puis `vercel login` vous-même (connexions personnelles), puis revérifie avec `pnpm diagnostic` — l'interview `/concept` attend ces connexions (verrou automatique) |
+| Outils OK mais le concept du MVP n'est pas défini                   | Il lance `/concept` : une interview guidée qui remplit `.concept/MVP.md` avec vous — **aucun code n'est possible avant** (verrou automatique)                                                         |
+| Outils OK, projet pas encore sur GitHub/Vercel                      | Il propose `/bootstrap` : dépôt GitHub, projet Vercel, variables, déploiement `*.vercel.app`, vérification                                                                                            |
+| Tout est prêt                                                       | Il répond à votre demande (`pnpm dev` pour coder sur http://localhost:3000)                                                                                                                           |
 
 Vous pouvez aussi tout déclencher explicitement :
 

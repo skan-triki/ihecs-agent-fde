@@ -84,7 +84,7 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 - `npm`/`npx`/`yarn`/`bun`, `pnpm dlx`, `pnpm pkg`, `pnpm --config.*` ;
 - toute mention de `.env*`, de `IHECS_TEACHER_BYPASS` ou une variable d'environnement en préfixe.
 
-**Fichiers (outil d'édition) :** écriture hors du projet, dans `.git/`, `node_modules/`, et dans toutes les règles (`AGENTS.md`, `package.json`, `vercel.json`, configs de qualité, `.husky/`, `.github/`, `scripts/`, `.devin/`, **ce dossier `.check/`**) ; `eslint-disable`, `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error`, `ignoreBuildErrors`, `skipValidation` ; `src/` tant que le concept n'est pas validé.
+**Fichiers (outil d'édition) :** écriture hors du projet, dans `.git/`, `node_modules/`, et dans toutes les règles (`AGENTS.md`, `package.json`, `vercel.json`, configs de qualité, `.husky/`, `.github/`, `scripts/`, `.devin/`, **ce dossier `.check/`**) ; `eslint-disable`, `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error`, `ignoreBuildErrors`, `skipValidation` ; `src/` tant que le concept n'est pas validé ; `.concept/` tant que GitHub et Vercel ne sont pas connectés (dépôt étudiant).
 
 **Filets de sécurité indépendants de l'agent** (ils s'appliquent aussi aux modifications faites à la main) :
 
@@ -100,6 +100,7 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 | Tant que…                                                   | …sont refusés                                                                          |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | installation pas terminée (Node, dépendances, `.env.local`) | écriture dans `.concept/`, `src/`, `public/` ; `shadcn add`                            |
+| comptes GitHub et Vercel non connectés (dépôt étudiant)     | écriture dans `.concept/` (l'interview du concept)                                     |
 | concept non validé                                          | écriture dans `src/`, `public/` ; `shadcn add` ; commit de `src/` ; CI et build Vercel |
 | GitHub ou Vercel non liés (dépôt étudiant)                  | push d'une branche, création et fusion de PR                                           |
 | production non vérifiée après une fusion                    | push, PR, fusion, écriture dans `src/`, fin de tour → `pnpm prod:check`                |

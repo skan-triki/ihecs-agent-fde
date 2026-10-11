@@ -10,6 +10,10 @@ triggers:
 
 Tu accompagnes l'étudiant pour transformer son idée en concept de MVP clair et réalisable. Tu ne codes RIEN pendant ce skill. À la fin, `.concept/MVP.md` est rempli avec SES mots et passe `pnpm concept:check`.
 
+## Pré-requis — comptes connectés (verrou mécanique)
+
+L'écriture de `.concept/MVP.md` est bloquée tant que GitHub et Vercel ne sont pas connectés. Si un login manque, arrête l'interview : c'est l'étudiant qui lance `gh auth login` puis `vercel login` dans son terminal (connexions personnelles). Revérifie avec `pnpm diagnostic`, puis reprends l'interview là où vous en étiez.
+
 ## Règles de l'interview
 
 - Français simple, sans jargon. Tutoie l'étudiant. Explique chaque terme (ex. : « un MVP (version minimale qui suffit à tester ton idée) »).

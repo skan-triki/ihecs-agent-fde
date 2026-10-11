@@ -1,8 +1,10 @@
 // État du poste et du projet, vérifiable RAPIDEMENT (sans lancer d'outil) :
 // utilisé par les garde-fous pour imposer l'ordre des étapes du cours.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { isTemplateRepo } from "./template.mjs";
 
 // Étapes 2-3 : outils installés et projet préparé, sinon pas de développement.
 export const devMissing = () => {
@@ -35,10 +37,60 @@ export const bootstrapMissing = () => {
   return missing;
 };
 
+// Dossier git courant (« .git » en secours si git échoue : build sans dépôt).
+const gitDir = () => {
+  const r = spawnSync("git", ["rev-parse", "--git-dir"], { encoding: "utf8" });
+  return r.status === 0 ? String(r.stdout).trim() : ".git";
+};
+
 // Étape 7 : marqueur posé à chaque fusion, retiré quand la production a été
 // vérifiée (`pnpm prod:check`). Tant qu'il existe, aucune nouvelle livraison.
-export const prodPendingMarker = () => {
-  const r = spawnSync("git", ["rev-parse", "--git-dir"], { encoding: "utf8" });
-  const dir = r.status === 0 ? String(r.stdout).trim() : ".git";
-  return join(dir, "ihecs-prod-pending");
+export const prodPendingMarker = () => join(gitDir(), "ihecs-prod-pending");
+
+// Étapes 3→4 : connexions GitHub et Vercel avant l'idéation. La sonde réelle
+// (`gh auth status`, `vercel whoami`) est lente (jusqu'à ~15 s) : le résultat
+// est mis en cache — 30 minutes quand tout est connecté, 60 secondes sinon,
+// pour reprendre vite après le login de l'étudiant.
+export const loginsCachePath = () => join(gitDir(), "ihecs-logins-cache");
+
+const probeOk = (cmd, args, timeout) =>
+  (process.platform === "win32"
+    ? spawnSync(`${cmd} ${args.join(" ")}`, {
+        shell: true,
+        encoding: "utf8",
+        timeout,
+        windowsHide: true,
+      })
+    : spawnSync(cmd, args, { encoding: "utf8", timeout })
+  ).status === 0;
+
+export const loginsMissing = () => {
+  // Le dépôt modèle n'est pas un poste étudiant : verrou non applicable.
+  if (isTemplateRepo()) return [];
+  let cached = null;
+  try {
+    cached = JSON.parse(readFileSync(loginsCachePath(), "utf8"));
+  } catch {
+    // Cache absent ou illisible : on re-sonde.
+  }
+  if (
+    Array.isArray(cached?.missing) &&
+    Date.now() - cached.ts < (cached.missing.length > 0 ? 60_000 : 30 * 60_000)
+  ) {
+    return cached.missing;
+  }
+  const missing = [];
+  if (!probeOk("gh", ["auth", "status"], 10_000))
+    missing.push("GitHub (`gh auth login`)");
+  if (!probeOk("vercel", ["whoami"], 15_000))
+    missing.push("Vercel (`vercel login`)");
+  try {
+    writeFileSync(
+      loginsCachePath(),
+      JSON.stringify({ ts: Date.now(), missing }),
+    );
+  } catch {
+    // Dossier git non inscriptible : la sonde repassera au prochain passage.
+  }
+  return missing;
 };
