@@ -14,5 +14,14 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "json.schemaDownload.trustedDomains": {
+    "https://schemastore.azurewebsites.net/": true,
+    "https://raw.githubusercontent.com/": true,
+    "https://www.schemastore.org/": true,
+    "https://json.schemastore.org/": true,
+    "https://json-schema.org/": true,
+    "https://openapi.vercel.sh/": true,
+    "https://unpkg.com/": true
+  }
 }
