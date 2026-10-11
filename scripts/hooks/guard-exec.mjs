@@ -18,8 +18,20 @@ try {
   process.exit(0);
 }
 
-const command = String(payload.tool_input?.command ?? "");
+// Deux runtimes servis : Devin CLI (hooks.v1.json — payload `tool_input`,
+// blocage via JSON `decision:"block"`) et Cascade/Windsurf (hooks.json —
+// payload `tool_info`, blocage via stderr + exit 2).
+const isCascade = typeof payload.agent_action_name === "string";
+const command = String(
+  payload.tool_input?.command ?? payload.tool_info?.command_line ?? "",
+);
 if (!command) process.exit(0);
+
+const block = (reason) => {
+  if (isCascade) console.error(reason);
+  else console.log(JSON.stringify({ decision: "block", reason }));
+  process.exit(2);
+};
 
 // CONCEPT AVANT CODE : bloquer l'installation de composants UI (shadcn add)
 // tant que le concept MVP n'est pas validé dans .concept/MVP.md.
@@ -30,14 +42,9 @@ if (/\bshadcn\s+(add|create)\b/.test(command)) {
     { encoding: "utf8", timeout: 10_000 },
   );
   if (concept.status !== 0) {
-    console.log(
-      JSON.stringify({
-        decision: "block",
-        reason:
-          "Verrou « concept avant code » : on n'installe pas de composants avant d'avoir défini le MVP. Lance le skill /concept avec l'étudiant (interview guidée qui remplit .concept/MVP.md), puis valide avec `pnpm concept:check`.",
-      }),
+    block(
+      "Verrou « concept avant code » : on n'installe pas de composants avant d'avoir défini le MVP. Lance le skill /concept avec l'étudiant (interview guidée qui remplit .concept/MVP.md), puis valide avec `pnpm concept:check`.",
     );
-    process.exit(2);
   }
 }
 
@@ -109,14 +116,6 @@ const rules = [
 ];
 
 const hit = rules.find((rule) => rule.re.test(command));
-if (hit) {
-  console.log(
-    JSON.stringify({
-      decision: "block",
-      reason: `${hit.reason} [garde-fou du cours]`,
-    }),
-  );
-  process.exit(2);
-}
+if (hit) block(`${hit.reason} [garde-fou du cours]`);
 
 process.exit(0);

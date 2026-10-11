@@ -22,13 +22,27 @@ try {
 // Bypass enseignant uniquement.
 if (process.env.IHECS_TEACHER_BYPASS === "true") process.exit(0);
 
+// Deux runtimes servis : Devin CLI (payload `tool_input`, blocage JSON) et
+// Cascade/Windsurf (payload `tool_info`, blocage via stderr + exit 2).
+const isCascade = typeof payload.agent_action_name === "string";
+
+const block = (reason) => {
+  if (isCascade) console.error(reason);
+  else console.log(JSON.stringify({ decision: "block", reason }));
+  process.exit(2);
+};
+
 const ti = payload.tool_input ?? {};
-const target = String(ti.file_path ?? ti.path ?? ti.notebook_path ?? "");
+const tinfo = payload.tool_info ?? {};
+const target = String(
+  ti.file_path ?? ti.path ?? ti.notebook_path ?? tinfo.file_path ?? "",
+);
 const content = [
   ti.new_string,
   ti.content,
   ti.new_source,
   ti.edits?.map((e) => e.new_text),
+  tinfo.edits?.map((e) => e.new_string),
 ]
   .filter(Boolean)
   .join("\n");
@@ -63,6 +77,7 @@ const protectedFiles = new Set([
   "guard-edit.mjs",
   "guard-exec.mjs",
   "hooks.v1.json",
+  "hooks.json",
 ]);
 
 // Les outils envoient des chemins ABSOLUS : les règles portant sur des
@@ -81,29 +96,19 @@ const isProtected =
   /^\.check\//.test(relPath) ||
   /\.github\/workflows\/[^/]+$/.test(relPath) ||
   /^\.devin\/(agents|skills|mcp_config\.json|config\.json)\//.test(relPath) ||
-  /^\.devin\/(config\.json|mcp_config\.json|hooks\.v1\.json)$/.test(relPath);
+  /^\.devin\/(config\.json|mcp_config\.json|hooks(\.v1)?\.json)$/.test(relPath);
 
 if (isProtected) {
-  console.log(
-    JSON.stringify({
-      decision: "block",
-      reason:
-        "Ce fichier fait partie des garde-fous du cours (qualité, hooks, CI, agents) : sa modification est réservée à l'enseignant. Si une règle bloque un besoin légitime, expliquez-le dans votre réponse et proposez le changement souhaité.",
-    }),
+  block(
+    "Ce fichier fait partie des garde-fous du cours (qualité, hooks, CI, agents) : sa modification est réservée à l'enseignant. Si une règle bloque un besoin légitime, expliquez-le dans votre réponse et proposez le changement souhaité.",
   );
-  process.exit(2);
 }
 
 // Fichiers de secrets : jamais écrits par l'agent (l'étudiant les édite lui-même).
 if (/^\.env(\.|$)/.test(base) && base !== ".env.example") {
-  console.log(
-    JSON.stringify({
-      decision: "block",
-      reason:
-        "Interdit : l'agent ne peut pas écrire les fichiers `.env*` de secrets. Demandez à l'étudiant de créer/éditer `.env.local` lui-même, ou utilisez `vercel env add`.",
-    }),
+  block(
+    "Interdit : l'agent ne peut pas écrire les fichiers `.env*` de secrets. Demandez à l'étudiant de créer/éditer `.env.local` lui-même, ou utilisez `vercel env add`.",
   );
-  process.exit(2);
 }
 
 // CONCEPT AVANT CODE : aucune écriture dans src/** tant que le concept MVP
@@ -116,14 +121,9 @@ if (/^src\//.test(relPath)) {
     { encoding: "utf8", timeout: 10_000 },
   );
   if (concept.status !== 0) {
-    console.log(
-      JSON.stringify({
-        decision: "block",
-        reason:
-          "Verrou « concept avant code » : le concept MVP n'est pas encore validé dans .concept/MVP.md, donc l'écriture de code applicatif (src/) est bloquée. Lance immédiatement le skill /concept avec l'étudiant : une interview guidée en français simple, UNE question à la fois, qui remplit .concept/MVP.md (pitch, problème, utilisateurs, parcours, périmètre, écrans, données & IA, critères de succès, risques). Ne code rien avant qu'il soit validé. Vérifie ensuite avec `pnpm concept:check`.",
-      }),
+    block(
+      "Verrou « concept avant code » : le concept MVP n'est pas encore validé dans .concept/MVP.md, donc l'écriture de code applicatif (src/) est bloquée. Lance immédiatement le skill /concept avec l'étudiant : une interview guidée en français simple, UNE question à la fois, qui remplit .concept/MVP.md (pitch, problème, utilisateurs, parcours, périmètre, écrans, données & IA, critères de succès, risques). Ne code rien avant qu'il soit validé. Vérifie ensuite avec `pnpm concept:check`.",
     );
-    process.exit(2);
   }
 }
 
@@ -131,14 +131,9 @@ if (/^src\//.test(relPath)) {
 const suppression =
   /\/\/\s*eslint-disable|\/\*\s*eslint-disable|\/\/\s*@ts-ignore|\/\/\s*@ts-nocheck|\/\/\s*@ts-expect-error\b/;
 if (suppression.test(addedText)) {
-  console.log(
-    JSON.stringify({
-      decision: "block",
-      reason:
-        "Désactiver un diagnostic (eslint-disable, @ts-ignore, @ts-expect-error) est interdit : corrigez la cause. Une exception validée doit être documentée (`-- justification`) et validée par l'enseignant.",
-    }),
+  block(
+    "Désactiver un diagnostic (eslint-disable, @ts-ignore, @ts-expect-error) est interdit : corrigez la cause. Une exception validée doit être documentée (`-- justification`) et validée par l'enseignant.",
   );
-  process.exit(2);
 }
 
 process.exit(0);

@@ -17,8 +17,13 @@ try {
   process.exit(0);
 }
 
+// Devin CLI : payload `tool_input`, retour via `additionalContext`.
+// Cascade : payload `tool_info`, retour via stdout (visible si show_output).
+const isCascade = typeof payload.agent_action_name === "string";
 const ti = payload.tool_input ?? {};
-const filePath = String(ti.file_path ?? ti.path ?? "");
+const filePath = String(
+  ti.file_path ?? ti.path ?? payload.tool_info?.file_path ?? "",
+);
 if (!filePath || !existsSync(filePath)) process.exit(0);
 
 if (!/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|css)$/.test(filePath)) {
@@ -47,14 +52,17 @@ if (/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(filePath)) {
     filePath,
   ]);
   if (eslint.status !== 0) {
-    console.log(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: "PostToolUse",
-          additionalContext: `Le fichier vient d'être reformaté (ESLint --fix). ERREURS RESTANTES à corriger avant de continuer :\n${eslint.stdout || eslint.stderr}`,
-        },
-      }),
-    );
+    const msg = `Le fichier vient d'être reformaté (ESLint --fix). ERREURS RESTANTES à corriger avant de continuer :\n${eslint.stdout || eslint.stderr}`;
+    if (isCascade) console.log(msg);
+    else
+      console.log(
+        JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: msg,
+          },
+        }),
+      );
     process.exit(0);
   }
 }
@@ -71,12 +79,15 @@ try {
 const size = existsSync(filePath)
   ? `${remaining.split("\n").length} lignes`
   : "";
-console.log(
-  JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse",
-      additionalContext: `PostToolUse: "${filePath}" a été auto-formaté (ESLint --fix + Prettier) : ${size}. Relisez le fichier avant de le rééditer (son contenu a pu changer).`,
-    },
-  }),
-);
+const doneMsg = `"${filePath}" a été auto-formaté (ESLint --fix + Prettier) : ${size}. Relisez le fichier avant de le rééditer (son contenu a pu changer).`;
+if (isCascade) console.log(doneMsg);
+else
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: `PostToolUse: ${doneMsg}`,
+      },
+    }),
+  );
 process.exit(0);

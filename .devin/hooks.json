@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "pre_run_command": [
+      {
+        "command": "node scripts/hooks/guard-exec.mjs"
+      },
+      {
+        "command": "node scripts/hooks/pre-commit-reminder.mjs"
+      }
+    ],
+    "pre_write_code": [
+      {
+        "command": "node scripts/hooks/guard-edit.mjs"
+      }
+    ],
+    "post_write_code": [
+      {
+        "command": "node scripts/hooks/post-edit-lint.mjs",
+        "show_output": true
+      }
+    ]
+  }
+}

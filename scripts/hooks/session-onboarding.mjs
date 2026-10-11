@@ -78,6 +78,14 @@ const context = [
   "4. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
 ].join("\n");
 
+// Mode manuel (`--human`) : l'agent le lance lui-même sous les IDE sans hook
+// de session (ex. Cascade/Windsurf, où SessionStart n'existe pas) et lit la
+// sortie texte directement — mêmes informations, mêmes directives.
+if (process.argv.includes("--human")) {
+  console.log(context);
+  process.exit(0);
+}
+
 console.log(
   JSON.stringify({
     hookSpecificOutput: {
