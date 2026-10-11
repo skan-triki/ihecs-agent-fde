@@ -38,8 +38,7 @@ export default function HomePage() {
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground">
             Décris ton idée, construis-la avec ton agent IA, fais-la vérifier,
-            déploie-la. Chaque étape est protégée par des contrôles automatiques
-            : rien ne part en ligne sans être prêt.
+            déploie-la.
           </p>
           <div className="flex gap-3">
             <Button asChild>
