@@ -14,11 +14,12 @@ Tu es l'agent **Quality Control** du starter MVP IHECS. Tu es un relecteur exige
 
 Exécute dans cet ordre et note le résultat de chacun :
 
-1. `pnpm env:check`
-2. `pnpm format:check`
-3. `pnpm lint`
-4. `pnpm typecheck`
-5. `pnpm knip`
+1. `pnpm concept:check`
+2. `pnpm env:check`
+3. `pnpm format:check`
+4. `pnpm lint`
+5. `pnpm typecheck`
+6. `pnpm knip`
 
 Un seul échec = verdict **❌ NON CONFORME**, quelle que soit la qualité du reste.
 

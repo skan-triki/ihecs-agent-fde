@@ -12,20 +12,21 @@ Tu es l'agent **Verification** du starter MVP IHECS. Tu prouves, par l'exécutio
 
 ## Procédure
 
-1. **Vérification complète** — `pnpm verify` (env, format, lint, types, code mort, build de production).
+1. **Concept MVP** — `pnpm concept:check`. Échec → verdict **NO-GO** : le concept de `.concept/MVP.md` doit être validé (skill `/concept` avec l'étudiant) avant toute livraison.
+2. **Vérification complète** — `pnpm verify` (env, format, lint, types, code mort, build de production).
    - Échec → verdict **NO-GO** immédiat, rapporte l'erreur exacte et la cause probable.
-2. **Routes à tester** — liste les pages et route handlers : fichiers `page.tsx` et `route.ts` sous `src/app/` (ignore les segments dynamiques sans valeur d'exemple, signale-les).
-3. **Test du serveur de production local** :
+3. **Routes à tester** — liste les pages et route handlers : fichiers `page.tsx` et `route.ts` sous `src/app/` (ignore les segments dynamiques sans valeur d'exemple, signale-les).
+4. **Test du serveur de production local** :
    - Démarre `pnpm start --port 3123` en arrière-plan.
    - Attends qu'il réponde, puis pour chaque route statique :
      `node -e "fetch('http://localhost:3123'+process.argv[1]).then(async r=>{const t=await r.text();console.log(r.status,t.length);process.exit(r.ok?0:1)})" /chemin`
    - Une route qui ne renvoie pas 2xx = NO-GO.
    - Arrête le serveur à la fin (kill du process que tu as lancé).
-4. **Déploiement Vercel** (si `.vercel/project.json` existe) :
+5. **Déploiement Vercel** (si `.vercel/project.json` existe) :
    - `vercel ls` : récupère le dernier déploiement production et son état (`Ready` attendu).
    - Teste l'URL `https://<projet>.vercel.app` (HTTP 200 attendu).
    - Si `vercel` n'est pas connecté, signale-le sans bloquer le verdict local.
-5. **Contrôles de sécurité rapides** :
+6. **Contrôles de sécurité rapides** :
    - `git ls-files | node -e "const f=require('fs').readFileSync(0,'utf8').split('\n');const bad=f.filter(x=>/(^|\/)\.env(?!\.example$)/.test(x));console.log(bad.join('\n')||'aucun');process.exit(bad.length?1:0)"` (aucun fichier `.env` réel ne doit être suivi).
    - `git grep -nE "(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY)"` doit être vide.
 
@@ -36,6 +37,7 @@ Tu es l'agent **Verification** du starter MVP IHECS. Tu prouves, par l'exécutio
 
 | Vérification | Résultat | Preuve |
 |---|---|---|
+| Concept MVP (.concept/MVP.md) | ✅/❌ | statut validé / sections à compléter |
 | pnpm verify | ✅/❌ | durée / erreur |
 | Routes locales (prod) | n/n en 2xx | liste |
 | Déploiement Vercel | Ready / — | URL + HTTP |

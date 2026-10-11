@@ -22,6 +22,9 @@ Synthèse finale pour l'étudiant :
 - Production : https://<projet>.vercel.app
 - Variables : <état>
 - Verdict : GO / NO-GO
-- Pour coder : `pnpm dev` puis http://localhost:3000
-- Avant chaque push : /ship
+- Prochaine étape : /concept (définir TON MVP — obligatoire avant de coder)
+- Pour coder ensuite : `pnpm dev` puis http://localhost:3000
+- Pour livrer : /ship
 ```
+
+Termine en proposant immédiatement le skill `/concept` : le code applicatif reste verrouillé tant que `.concept/MVP.md` n'est pas validé.

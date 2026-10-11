@@ -1,10 +1,25 @@
-// Hook Devin SessionStart — sonde l'environnement de l'étudiant (outils, repo, Vercel)
-// et injecte un contexte d'accompagnement pour que l'agent guide l'étudiant
-// dès son premier message, sans refaire ces vérifications lui-même.
+// Hook Devin SessionStart — sonde l'environnement de l'étudiant (outils, repo,
+// Vercel, concept MVP) et injecte un contexte d'accompagnement pour que
+// l'agent guide l'étudiant dès son premier message, sans refaire ces
+// vérifications lui-même.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const IS_WIN = process.platform === "win32";
+
+// Concept MVP : validé seulement si .concept/MVP.md existe, statut validé
+// et sans contenu EXEMPLE restant (mêmes critères que check-concept.mjs).
+const conceptValid = (() => {
+  if (!existsSync(".concept/MVP.md")) return false;
+  try {
+    const raw = readFileSync(".concept/MVP.md", "utf8");
+    return (
+      /^\s*>?\s*statut\s*:\s*validé/im.test(raw) && !/EXEMPLE\s*—/i.test(raw)
+    );
+  } catch {
+    return false;
+  }
+})();
 
 // Sur Windows, pnpm/vercel sont des .cmd : il faut passer par le shell.
 const probe = (cmd, args) =>
@@ -50,14 +65,16 @@ const context = [
   `Fichier .env.local : ${existsSync(".env.local") ? "✅ présent" : "❌ absent"}`,
   `Repo GitHub (remote origin) : ${origin ? `✅ ${origin}` : "❌ non lié"}`,
   `Projet Vercel (.vercel/) : ${existsSync(".vercel/project.json") ? "✅ lié" : "❌ non lié"}`,
+  `Concept MVP (.concept/MVP.md) : ${conceptValid ? "✅ validé" : "❌ à définir (verrou : aucun code applicatif possible avant validation)"}`,
   "",
   "DIRECTIVES TUTORAT (applique-les dès le premier message de l'étudiant) :",
   "1. Langage : réponds toujours en français simple, sans jargon, en tutoyant l'étudiant (règle absolue — voir AGENTS.md ; un rappel est aussi réinjecté à chaque message).",
-  "2. Accueille brièvement et propose l'étape suivante adaptée à l'état ci-dessus.",
-  "3. Un outil est ❌ ABSENT → exécute immédiatement le skill /install-tools (tu installes tout, l'étudiant approuve ; seuls gh auth login / vercel login restent à lui).",
-  "4. Outils ✅ mais repo/Vercel ❌ → propose /bootstrap.",
-  "5. Tout est ✅ → réponds directement à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
-  "6. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
+  "2. Accueille brièvement et propose l'étape suivante adaptée à l'état ci-dessus, DANS CET ORDRE :",
+  "   a. un outil est ❌ ABSENT → skill /install-tools (tu installes tout, l'étudiant approuve ; seuls gh auth login / vercel login restent à lui) ;",
+  "   b. outils ✅ mais Concept MVP ❌ → propose le skill /concept AVANT TOUT CODE (le code applicatif est mécaniquement bloqué tant que le concept n'est pas validé ; l'étudiant le sait grâce à la question /concept) ;",
+  "   c. outils ✅ et concept ✅ mais repo/Vercel ❌ → propose /bootstrap ;",
+  "   d. tout est ✅ → réponds à sa demande ; rappelle /quality-check (pendant le dev) et /ship (pour livrer) quand c'est pertinent.",
+  "3. Ne refais pas ces vérifications manuellement : ce contexte vient d'être généré. Ne le recopie pas intégralement dans ta réponse.",
 ].join("\n");
 
 console.log(

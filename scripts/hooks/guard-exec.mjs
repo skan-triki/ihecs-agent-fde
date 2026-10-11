@@ -1,5 +1,7 @@
-// Hook Devin PreToolUse(exec) — bloque les commandes interdites par le cours.
+// Hook Devin PreToolUse(exec) — bloque les commandes interdites par le cours
+// et l'ajout de composants tant que le concept MVP n'est pas validé.
 // Sortie code 2 = action bloquée, `reason` remontée à l'agent.
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 let input = "";
@@ -18,6 +20,26 @@ try {
 
 const command = String(payload.tool_input?.command ?? "");
 if (!command) process.exit(0);
+
+// CONCEPT AVANT CODE : bloquer l'installation de composants UI (shadcn add)
+// tant que le concept MVP n'est pas validé dans .concept/MVP.md.
+if (/\bshadcn\s+(add|create)\b/.test(command)) {
+  const concept = spawnSync(
+    process.execPath,
+    ["scripts/check-concept.mjs", "--quiet"],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  if (concept.status !== 0) {
+    console.log(
+      JSON.stringify({
+        decision: "block",
+        reason:
+          "Verrou « concept avant code » : on n'installe pas de composants avant d'avoir défini le MVP. Lance le skill /concept avec l'étudiant (interview guidée qui remplit .concept/MVP.md), puis valide avec `pnpm concept:check`.",
+      }),
+    );
+    process.exit(2);
+  }
+}
 
 // npm : autorisé UNIQUEMENT pour les installations globales d'outils (-g) et
 // l'affichage de version. Le reste (npm install local, npm run…) reste interdit :

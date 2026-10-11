@@ -36,6 +36,28 @@ const changed = git(["status", "--porcelain"])
 
 if (changed.length === 0) process.exit(0);
 
+// CONCEPT AVANT CODE (défense en profondeur) : du code applicatif a été
+// modifié (y compris via exec, ex. shadcn add) alors que le concept MVP
+// n'est pas validé → on bloque avec la consigne /concept.
+const srcChanged = changed.some((p) => /^src\//.test(p.replaceAll("\\", "/")));
+if (srcChanged) {
+  const concept = spawnSync(
+    process.execPath,
+    ["scripts/check-concept.mjs", "--quiet"],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  if (concept.status !== 0) {
+    console.log(
+      JSON.stringify({
+        decision: "block",
+        reason:
+          "Verrou « concept avant code » : du code applicatif a été modifié alors que .concept/MVP.md n'est pas validé. Lance le skill /concept avec l'étudiant (interview guidée, français simple, une question à la fois) pour définir le concept MVP. Ne conclus pas tant que ce n'est pas fait.",
+      }),
+    );
+    process.exit(2);
+  }
+}
+
 const eslint = spawnSync(
   "pnpm",
   ["exec", "eslint", "--max-warnings=0", ...changed],

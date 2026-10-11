@@ -1,5 +1,7 @@
-// Hook Devin PreToolUse(write|edit|apply_patch) — protège les secrets et les garde-fous.
+// Hook Devin PreToolUse(write|edit|apply_patch) — protège les secrets, les
+// garde-fous et l'obligation « concept avant code ».
 // Sortie code 2 = action bloquée, `reason` remontée à l'agent.
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 let input = "";
@@ -96,6 +98,27 @@ if (/^\.env(\.|$)/.test(base) && base !== ".env.example") {
     }),
   );
   process.exit(2);
+}
+
+// CONCEPT AVANT CODE : aucune écriture dans src/** tant que le concept MVP
+// n'est pas validé dans .concept/MVP.md. L'agent est mécaniquement renvoyé
+// vers le skill /concept (interview guidée avec l'étudiant).
+if (/^src\//.test(normNoDrive)) {
+  const concept = spawnSync(
+    process.execPath,
+    ["scripts/check-concept.mjs", "--quiet"],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  if (concept.status !== 0) {
+    console.log(
+      JSON.stringify({
+        decision: "block",
+        reason:
+          "Verrou « concept avant code » : le concept MVP n'est pas encore validé dans .concept/MVP.md, donc l'écriture de code applicatif (src/) est bloquée. Lance immédiatement le skill /concept avec l'étudiant : une interview guidée en français simple, UNE question à la fois, qui remplit .concept/MVP.md (pitch, problème, utilisateurs, parcours, périmètre, écrans, données & IA, critères de succès, risques). Ne code rien avant qu'il soit validé. Vérifie ensuite avec `pnpm concept:check`.",
+      }),
+    );
+    process.exit(2);
+  }
 }
 
 // Suppressions de diagnostics interdites.

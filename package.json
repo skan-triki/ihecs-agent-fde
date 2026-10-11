@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
     "knip": "knip",
+    "concept:check": "node scripts/check-concept.mjs",
     "env:check": "node scripts/check-env.mjs",
     "check": "pnpm env:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip",
     "verify": "pnpm check && pnpm build",
