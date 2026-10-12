@@ -284,6 +284,7 @@ const rules = {
         "knip",
         "commitlint",
         "lint-staged",
+        "vitest",
       ];
       if (!BIN.includes(rest[0] ?? ""))
         return `\`pnpm exec\` est limité aux outils du projet : ${BIN.join(", ")}.`;

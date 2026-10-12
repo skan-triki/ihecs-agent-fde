@@ -74,7 +74,7 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 
 ## 5. Zéro tolérance : ce qui est bloqué mécaniquement
 
-**Commandes terminal de l'agent : liste blanche.** Seules sont autorisées les commandes du cours : scripts `pnpm` du projet, `pnpm add/remove/install`, `pnpm exec` (shadcn, eslint, prettier, tsc, next, knip, commitlint, lint-staged), `git` courant (sans options dangereuses), `gh` (PR, CI, dépôt, API en lecture), `vercel` (sans build local, domaine ni promotion), installation des outils (winget/brew/corepack/`npm i -g pnpm|vercel`), `node scripts/…` officiels, et la lecture de fichiers du projet. **Tout le reste est refusé**, notamment :
+**Commandes terminal de l'agent : liste blanche.** Seules sont autorisées les commandes du cours : scripts `pnpm` du projet, `pnpm add/remove/install`, `pnpm exec` (shadcn, eslint, prettier, tsc, next, knip, commitlint, lint-staged, vitest), `git` courant (sans options dangereuses), `gh` (PR, CI, dépôt, API en lecture), `vercel` (sans build local, domaine ni promotion), installation des outils (winget/brew/corepack/`npm i -g pnpm|vercel`), `node scripts/…` officiels, et la lecture de fichiers du projet. **Tout le reste est refusé**, notamment :
 
 - `git commit -n` / `--no-verify`, `HUSKY=0`, `core.hooksPath`, `git -c …` — couper les hooks git ;
 - `node -e`, `python`, `bash -c`, `powershell -c`, programmes lancés par chemin — exécuter du code arbitraire ;

@@ -7,6 +7,8 @@
 //     serveur/client verrouillée par Next.js, pas par convention).
 //  3. Tout module de logique pure src/lib/**/*.ts exige son test voisin
 //     X.test.ts — une fonction sans test est une fonction non prouvée.
+//     Exemptés : les fichiers de types (*.d.ts) et les barils (index.ts)
+//     qui ne contiennent pas de logique propre.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -52,6 +54,9 @@ for (const file of walk("src")) {
   if (
     rel.startsWith("src/lib/") &&
     rel.endsWith(".ts") &&
+    !rel.endsWith(".d.ts") &&
+    !rel.endsWith("/index.ts") &&
+    rel !== "src/lib/index.ts" &&
     !existsSync(file.replace(/\.ts$/, ".test.ts"))
   ) {
     errors.push(

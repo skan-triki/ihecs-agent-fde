@@ -41,7 +41,7 @@ Règles d'arborescence (canoniques Next.js) :
 - Crée `loading.tsx`, `error.tsx` et `not-found.tsx` au niveau de chaque route asynchrone qui en a besoin (pas seulement à la racine).
 - Un dossier de route = son fichier de test à côté si pertinent ; les hooks partagés dans `src/hooks/`, les types partagés dans `src/types/`.
 - `src/server/` : **première ligne = `import "server-only";`** — si un composant client importe le module, le build casse (protection mécanique, pas une convention).
-- `src/lib/` : **chaque module exige son `X.test.ts` voisin** — `pnpm src:check` refuse sinon (voir « Tests » plus bas).
+- `src/lib/` : **chaque module exige son `X.test.ts` voisin** — `pnpm src:check` refuse sinon (voir « Tests » plus bas). Exemptés : les fichiers de types (`*.d.ts`) et les barils (`index.ts`).
 
 ## Server vs Client Components
 
