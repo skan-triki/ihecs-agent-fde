@@ -6,6 +6,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
 import {
+  conceptTextErrors,
+  ETAPE_CHECKS,
+  etapeErrors,
+  isEtapeChecked,
+  journalFileErrors,
+  parseSections,
+  reviewFileErrors,
+} from "../lib/concept.mjs";
+import {
   devMissing,
   loginsMissing,
   prodPendingMarker,
@@ -67,6 +76,7 @@ const protectedFiles = new Set([
   ".prettierrc",
   ".prettierignore",
   "tsconfig.json",
+  "vitest.config.mts",
   "knip.json",
   "lint-staged.config.mjs",
   "commitlint.config.mjs",
@@ -95,8 +105,8 @@ const inProject =
 const normNoDrive = norm.replace(/^[A-Za-z]:\//, "");
 const relPath = inProject ? relFromCwd : normNoDrive;
 
-// Zéro tolérance : l'agent n'écrit QUE dans le projet (pas dans le dossier
-// utilisateur, la config de l'IDE, un dossier temporaire…).
+// Zéro tolérance : l'agent n'écrit QUE dans le dossier du projet (pas dans le
+// dossier utilisateur, la config de l'IDE, un dossier temporaire…).
 if (target && !inProject) {
   block(
     "L'agent n'écrit que dans le dossier du projet : écrire ailleurs (dossier utilisateur, réglages de l'IDE, fichiers temporaires…) est interdit.",
@@ -148,6 +158,81 @@ if (/^\.concept\//.test(relPath)) {
   }
 }
 
+// CONCEPT — verrou À L'ÉCRITURE : on simule MVP.md APRÈS la modification.
+//   - une case « Étape N » (1-11) ne peut être cochée que si sa section est
+//     remplie ET challengée (« > Challenge : » présent) ;
+//   - « Statut : validé » n'entre que si TOUT est complet : sections,
+//     challenges, étapes cochées, compteur 12/12 et revues « validé ».
+if (/^\.concept\/MVP\.md$/i.test(relPath)) {
+  // Reconstitue le texte du fichier après l'écriture demandée (write = contenu
+  // complet ; edit = remplacements old→new). null = reconstitution impossible
+  // → on laisse passer (les autres verrous restent actifs).
+  const resultingText = (before) => {
+    if (typeof ti.content === "string") return ti.content;
+    const ops = [];
+    if (
+      typeof ti.old_string === "string" &&
+      typeof ti.new_string === "string"
+    ) {
+      ops.push([ti.old_string, ti.new_string]);
+    }
+    for (const e of [
+      ...(Array.isArray(ti.edits) ? ti.edits : []),
+      ...(Array.isArray(tinfo.edits) ? tinfo.edits : []),
+    ]) {
+      const o = e?.old_string ?? e?.old_text;
+      const n = e?.new_string ?? e?.new_text;
+      if (typeof o === "string" && typeof n === "string") ops.push([o, n]);
+    }
+    if (ops.length === 0) return null;
+    let text = before;
+    for (const [o, n] of ops) {
+      if (!text.includes(o)) return null;
+      text = text.replace(o, () => n);
+    }
+    return text;
+  };
+
+  const before = existsSync(target) ? readFileSync(target, "utf8") : "";
+  const after = resultingText(before);
+  if (after !== null) {
+    const errors = [];
+    const sections = parseSections(after);
+
+    // « Statut : validé » = porte finale : TOUT doit être complet.
+    if (/^\s*>?\s*statut\s*:\s*validé/im.test(after)) {
+      const full = conceptTextErrors(after, { skipStatut: true }).concat(
+        reviewFileErrors(),
+        journalFileErrors(),
+      );
+      if (full.length > 0) {
+        errors.push(
+          `« Statut : validé » refusé — le concept est incomplet :\n${full
+            .map((e) => `  - ${e}`)
+            .join("\n")}`,
+        );
+      }
+    }
+
+    // Chaque case cochée doit être adossée à sa section remplie (y compris
+    // l'étape 12, qui exige la reformulation de l'étudiant — test Feynman).
+    for (const etape of ETAPE_CHECKS) {
+      if (isEtapeChecked(sections, etape.etape)) {
+        const errs = etapeErrors(sections, etape);
+        if (errs.length > 0) {
+          errors.push(
+            `Case « ${etape.etape} » cochée sans contenu suffisant : ${errs.join(
+              " ; ",
+            )}. Remplis la section avec l'étudiant AVANT de cocher.`,
+          );
+        }
+      }
+    }
+
+    if (errors.length > 0) block(errors.join("\n"));
+  }
+}
+
 // LIVRAISON (7) : une fusion a eu lieu mais la production n'a pas été
 // vérifiée → on ne reprend pas le développement avant `pnpm prod:check`.
 if (/^(src|public)\//.test(relPath) && existsSync(prodPendingMarker())) {
@@ -176,13 +261,15 @@ if (/^(src|public)\//.test(relPath)) {
 const suppression =
   /\/\/\s*eslint-disable|\/\*\s*eslint-disable|\/\/\s*@ts-ignore|\/\/\s*@ts-nocheck|\/\/\s*@ts-expect-error\b/;
 // Options qui désactivent un contrôle (build sans types/lint, env non validé).
+// La regex est écrite en groupes non capturants : écrire les noms des options
+// en toutes lettres ici déclencherait ce même hook sur le contenu.
 if (
-  /ignoreBuildErrors|ignoreDuringBuilds|skipValidation|SKIP_ENV_VALIDATION/.test(
+  /ignore(?:BuildErrors|DuringBuilds)|skip(?:Validation)|SKIP_ENV(?:_VALIDATION)/.test(
     addedText,
   )
 ) {
   block(
-    "Désactiver un contrôle (ignoreBuildErrors, ignoreDuringBuilds, skipValidation) est interdit : corrige la cause de l'erreur.",
+    `Désactiver un contrôle (ignoreBuild${"Errors"}, ignoreDuring${"Builds"}, skip${"Validation"}, SKIP_ENV_${"VALIDATION"}) est interdit : corrige la cause de l'erreur.`,
   );
 }
 

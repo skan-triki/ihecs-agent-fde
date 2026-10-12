@@ -36,6 +36,16 @@
           "timeout": 40
         }
       ]
+    },
+    {
+      "matcher": "^run_subagent$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/log-subagent.mjs",
+          "timeout": 10
+        }
+      ]
     }
   ],
   "Stop": [

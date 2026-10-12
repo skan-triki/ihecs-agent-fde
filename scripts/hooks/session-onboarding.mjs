@@ -7,12 +7,23 @@
 // dépendances, le concept MVP (via check-concept.mjs, même verdict que les
 // verrous) et CALCULE la prochaine étape, pour que l'accueil soit déterministe.
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 
 const IS_WIN = process.platform === "win32";
 const args = process.argv.slice(2);
 const human = args.includes("--human");
 const strict = args.includes("--strict");
+
+// Journal d'audit des sous-agents : sa seule existence (créée ici, sous les
+// hooks Devin) active l'exigence « les relecteurs ont réellement été lancés ».
+// Sous Cascade (pas de hook SessionStart), le fichier n'existe pas et cette
+// exigence est ignorée — limite assumée et documentée.
+try {
+  if (!existsSync(".git/ihecs-subagents.log"))
+    writeFileSync(".git/ihecs-subagents.log", "", "utf8");
+} catch {
+  // Pas de dépôt git : on ne bloque jamais le diagnostic.
+}
 
 // Sur Windows, pnpm/vercel sont des .cmd : il faut passer par le shell.
 const probe = (cmd, cmdArgs, timeout = 8000) =>

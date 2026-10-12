@@ -15,6 +15,7 @@ import {
   devMissing,
   prodPendingMarker,
 } from "../lib/readiness.mjs";
+import { codeReviewErrors } from "../lib/review.mjs";
 import { isTemplateRepo } from "../lib/template.mjs";
 
 let payload = {};
@@ -219,9 +220,13 @@ const deliveryBlocked = () => {
   }
   if (isTemplateRepo()) return null;
   const missing = bootstrapMissing();
-  return missing.length > 0
-    ? `Mise en route pas terminée : il manque ${missing.join(" et ")}. Lance d'abord le skill /bootstrap.`
-    : null;
+  if (missing.length > 0) {
+    return `Mise en route pas terminée : il manque ${missing.join(" et ")}. Lance d'abord le skill /bootstrap.`;
+  }
+  // Sas de revue code : les 3 relecteurs indépendants (.reviews/) doivent
+  // avoir validé le commit courant (skill /ship, étape « sas de revue code »).
+  const reviews = codeReviewErrors();
+  return reviews.length > 0 ? reviews.join("\n") : null;
 };
 
 const MSG = {
@@ -279,6 +284,7 @@ const rules = {
         "knip",
         "commitlint",
         "lint-staged",
+        "vitest",
       ];
       if (!BIN.includes(rest[0] ?? ""))
         return `\`pnpm exec\` est limité aux outils du projet : ${BIN.join(", ")}.`;

@@ -7,5 +7,6 @@
     ".vercel/**",
     ".pnpm-store/**"
   ],
-  "ignoreBinaries": ["vercel"]
+  "ignoreBinaries": ["vercel"],
+  "ignoreDependencies": ["server-only"]
 }

@@ -4,9 +4,26 @@
 //   - le hook pre-commit (mode --staged : bloque un commit qui touche src/
 //     tant que le concept n'est pas validé)
 //   - les hooks Devin guard-edit / guard-exec / stop-gate (mode --quiet).
+//
+// Verrous (logique partagée dans scripts/lib/concept.mjs) :
+//   - « étape par étape » : les 12 étapes de « Progression de l'interview »
+//     doivent être TOUTES cochées et la ligne « > Étape : 12/12 » à jour ;
+//   - « avocat du diable » : chaque section doit porter une ligne
+//     « > Challenge : <objection> → <décision> » remplie ;
+//   - « revue qualité » : les 3 sous-agents relecteurs (questionnement,
+//     couverture, pedagogie) doivent avoir écrit leur revue à mi-parcours ET
+//     un verdict « validé » à la finale (.concept/reviews/) ;
+//   - chaque section doit contenir du vrai contenu (pas d'EXEMPLE).
+// En cas d'échec, la première étape incomplète est nommée.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
+import {
+  conceptTextErrors,
+  journalFileErrors,
+  reviewFileErrors,
+  syntheseMarkdown,
+} from "./lib/concept.mjs";
 import { isTemplateRepo } from "./lib/template.mjs";
 
 const args = process.argv.slice(2);
@@ -45,100 +62,11 @@ if (!existsSync(".concept/MVP.md")) {
   );
 } else {
   const raw = readFileSync(".concept/MVP.md", "utf8");
-
-  if (!/^\s*>?\s*statut\s*:\s*validé/im.test(raw)) {
-    errors.push(
-      "Le statut du concept doit être « Statut : validé » (ligne sous le titre). Utilise le skill /concept avec ton agent.",
-    );
-  }
-
-  // Découpage en sections « ## » et sous-sections « ### ».
-  const sections = {};
-  const parts = raw.split(/^#{2,3}\s+/m);
-  for (const part of parts.slice(1)) {
-    const [title, ...rest] = part.split(/\r?\n/);
-    sections[title.trim()] = rest.join("\n");
-  }
-
-  const bodyOf = (title) => sections[title] ?? "";
-  const isExample = (body) => /EXEMPLE\s*—/i.test(body);
-  const realBody = (body) =>
-    body
-      .split(/\r?\n/)
-      .filter((l) => !/EXEMPLE\s*—/i.test(l))
-      .join("\n")
-      .trim();
-  const countItems = (body) =>
-    body.split(/\r?\n/).filter((l) => /^\s*([-*]|\d+[.)])\s+\S/.test(l)).length;
-
-  const required = [
-    ["1. Pitch (une phrase)", { chars: 20 }, "ton pitch en une phrase claire"],
-    ["2. Problème utilisateur", { chars: 20 }, "le problème que tu résous"],
-    ["3. Utilisateur cible", { chars: 15 }, "pour qui tu le construis"],
-    [
-      "4. Parcours clé (3 à 5 étapes)",
-      { items: 3 },
-      "au moins 3 étapes numérotées du parcours de l'utilisateur",
-    ],
-    [
-      "6. Écrans prévus (pages Next.js)",
-      { items: 1 },
-      "au moins 1 écran (page) sous forme de liste",
-    ],
-    [
-      "7. Données & IA",
-      { chars: 10 },
-      "les données utilisées, et le rôle de l'IA (ou « aucune IA »)",
-    ],
-    [
-      "8. Critères de succès (comment on SAIT que le MVP marche)",
-      { items: 1 },
-      "au moins 1 critère mesurable sous forme de liste",
-    ],
-    [
-      "9. Risques & hypothèses à tester",
-      { chars: 10 },
-      "au moins un risque ou une hypothèse",
-    ],
-  ];
-
-  for (const [title, rule, hint] of required) {
-    if (!Object.hasOwn(sections, title)) {
-      errors.push(`Section « ${title} » manquante dans .concept/MVP.md.`);
-      continue;
-    }
-    const body = bodyOf(title);
-    if (isExample(body)) {
-      errors.push(
-        `Section « ${title} » encore en EXEMPLE : remplace-la par TON contenu (skill /concept).`,
-      );
-      continue;
-    }
-    const content = realBody(body);
-    const tooShort =
-      rule.items !== undefined
-        ? countItems(content) < rule.items
-        : content.length < rule.chars;
-    if (tooShort) {
-      errors.push(`Section « ${title} » incomplète : il faut ${hint}.`);
-    }
-  }
-
-  // Périmètre : fonctionnalités indispensables + exclusions, en TES mots.
-  const features = bodyOf("Fonctionnalités indispensables (max 3)");
-  if (isExample(features) || countItems(realBody(features)) < 1) {
-    errors.push(
-      "Section « 5. Périmètre » : liste au moins 1 fonctionnalité indispensable (3 max), en TES mots.",
-    );
-  }
-  const outOfScope = bodyOf(
-    "Hors périmètre (ce qu'on ne fait PAS dans ce MVP)",
+  errors.push(
+    ...conceptTextErrors(raw),
+    ...reviewFileErrors(),
+    ...journalFileErrors(),
   );
-  if (isExample(outOfScope) || countItems(realBody(outOfScope)) < 1) {
-    errors.push(
-      "Section « 5. Périmètre » : liste au moins 1 chose que tu ne fais PAS (hors périmètre) — c'est ce qui rend le MVP faisable.",
-    );
-  }
 }
 
 if (errors.length > 0) {
@@ -152,5 +80,11 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-if (!quiet) console.log("✓ Concept MVP validé (.concept/MVP.md).");
+// Validation réussie → la synthèse est compilée automatiquement (document
+// d'une page pour l'étudiant et l'enseignant : concept, objections, revues).
+writeFileSync(".concept/SYNTHESE.md", syntheseMarkdown());
+if (!quiet)
+  console.log(
+    "✓ Concept MVP validé (.concept/MVP.md). Synthèse compilée : .concept/SYNTHESE.md.",
+  );
 process.exit(0);

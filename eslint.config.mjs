@@ -6,6 +6,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettier from "eslint-config-prettier/flat";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
+import importX from "eslint-plugin-import-x";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
@@ -147,6 +148,22 @@ const eslintConfig = defineConfig([
     },
     plugins: {
       "simple-import-sort": simpleImportSort,
+    },
+  },
+
+  // Cycles d'imports : une boucle a → b → a compile parfaitement mais produit
+  // des `undefined` silencieux au runtime. Refusée, alias `@/` compris.
+  {
+    files: ["src/**/*.{ts,tsx,mts}", "scripts/**/*.mjs"],
+    plugins: { "import-x": importX },
+    settings: {
+      "import-x/parsers": {
+        "@typescript-eslint/parser": [".ts", ".tsx", ".mts"],
+      },
+      "import-x/resolver": { typescript: true, node: true },
+    },
+    rules: {
+      "import-x/no-cycle": ["error", { maxDepth: 10, ignoreExternal: true }],
     },
   },
 
