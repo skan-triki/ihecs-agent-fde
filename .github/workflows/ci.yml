@@ -59,6 +59,24 @@ jobs:
       - name: Vérification du concept
         run: node scripts/check-concept.mjs
 
+  reviews:
+    name: Revues code validées (.reviews/)
+    # Même logique que le job « concept » : filet de sécurité côté GitHub pour
+    # les dépôts étudiants — un push fait hors de l'agent (interface web, autre
+    # machine sans les hooks) ne peut pas contourner le sas des 3 relecteurs.
+    if: ${{ !github.event.repository.is_template && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # La revue porte sur le HEAD de la branche : on vérifie ce commit-là
+          # (par défaut pull_request checkout le commit de fusion, qui
+          # n'aurait jamais été relu).
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Revues code validées sur le commit de la PR
+        run: node scripts/check-reviews.mjs
+
   commits:
     name: Messages de commit (Conventional Commits)
     if: github.event_name == 'pull_request'

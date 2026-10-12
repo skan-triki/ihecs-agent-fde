@@ -30,8 +30,8 @@ src/
 │   ├── theme-provider.tsx  # Thème clair/sombre
 │   └── utils.ts            # cn()
 ├── hooks/                  # Hooks partagés (créés ici, jamais dans app/)
-├── lib/                    # Logique pure, clients d'API
-├── server/                 # Code serveur uniquement (Server Actions, accès aux données, appels d'IA)
+├── lib/                    # Logique pure — chaque module exige son X.test.ts voisin (pnpm src:check)
+├── server/                 # Code serveur — chaque module commence par import "server-only" (pnpm src:check)
 └── env.ts                  # Variables d'environnement typées (source de vérité)
 ```
 
@@ -40,6 +40,8 @@ Règles d'arborescence (canoniques Next.js) :
 - `app/` ne contient JAMAIS de logique : délègue aux Server Components/Actions de `src/server/` et aux composants de `src/components/`.
 - Crée `loading.tsx`, `error.tsx` et `not-found.tsx` au niveau de chaque route asynchrone qui en a besoin (pas seulement à la racine).
 - Un dossier de route = son fichier de test à côté si pertinent ; les hooks partagés dans `src/hooks/`, les types partagés dans `src/types/`.
+- `src/server/` : **première ligne = `import "server-only";`** — si un composant client importe le module, le build casse (protection mécanique, pas une convention).
+- `src/lib/` : **chaque module exige son `X.test.ts` voisin** — `pnpm src:check` refuse sinon (voir « Tests » plus bas).
 
 ## Server vs Client Components
 
@@ -144,3 +146,25 @@ export function CreateProjectForm() {
 - Props typées avec `type Props = { ... }` ; pas de `any`.
 - Clés de liste = identifiant stable (jamais l'index).
 - Accessibilité : chaque champ a un `<Label htmlFor>`, chaque bouton a un texte ou `aria-label`.
+
+## Tests (vitest) — une fonction sans test est une fonction non prouvée
+
+TypeScript prouve que le code compile ; seul un test prouve qu'il calcule juste. `pnpm test` tourne dans `pnpm check` — donc au commit, au push, en CI et au build Vercel.
+
+- **Convention mécanique** : tout module `src/lib/**/*.ts` exige son `X.test.ts` voisin (`pnpm src:check` refuse sinon). Les Server Actions de `src/server/` méritent des tests quand elles sont testables (validation Zod, logique de décision) — le relecteur `qualite` le vérifie.
+- Fichier de test = à côté du module : `src/lib/price.ts` → `src/lib/price.test.ts`. Imports explicites : `import { describe, expect, it } from "vitest"`.
+- Chaque test nomme un comportement observable : `it("arrondit le prix à 2 décimales")`, pas `it("works")`.
+- Couvre le cas nominal, un cas limite et un cas d'erreur — 3 `it` suffisent pour une petite fonction.
+
+```ts
+// src/lib/price.test.ts
+import { describe, expect, it } from "vitest";
+
+import { formatPrice } from "./price";
+
+describe("formatPrice", () => {
+  it("formate un prix entier en euros", () => {
+    expect(formatPrice(12)).toBe("12,00 €");
+  });
+});
+```

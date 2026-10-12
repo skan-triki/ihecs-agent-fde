@@ -73,6 +73,31 @@ if (srcChanged) {
   }
 }
 
+// HYGIÈNE + TESTS (défense en fin de tour) : si des fichiers de src/ ont
+// changé, les règles de src:check (fichiers vides, server-only, tests exigés)
+// et les tests vitest liés aux fichiers touchés doivent passer maintenant —
+// pas seulement au push.
+const srcChangedFiles = changed.filter((p) =>
+  /^src\//.test(p.replaceAll("\\", "/")),
+);
+const hygiene = srcChangedFiles.length
+  ? spawnSync(process.execPath, ["scripts/check-src.mjs"], {
+      encoding: "utf8",
+      timeout: 30_000,
+    })
+  : { status: 0, stdout: "", stderr: "" };
+const vitest = srcChangedFiles.length
+  ? spawnSync(
+      "pnpm",
+      ["exec", "vitest", "run", "--related", ...srcChangedFiles],
+      {
+        encoding: "utf8",
+        shell: process.platform === "win32",
+        timeout: 120_000,
+      },
+    )
+  : { status: 0, stdout: "", stderr: "" };
+
 const eslint = spawnSync(
   "pnpm",
   ["exec", "eslint", "--max-warnings=0", ...changed],
@@ -92,10 +117,18 @@ const tsc = spawnSync(
   { encoding: "utf8", shell: process.platform === "win32", timeout: 180_000 },
 );
 
-const failed = eslint.status !== 0 || tsc.status !== 0;
+const failed =
+  eslint.status !== 0 ||
+  tsc.status !== 0 ||
+  hygiene.status !== 0 ||
+  vitest.status !== 0;
 if (!failed) process.exit(0);
 
 const out = [
+  String(hygiene.stdout ?? ""),
+  String(hygiene.stderr ?? ""),
+  String(vitest.stdout ?? ""),
+  String(vitest.stderr ?? ""),
   String(eslint.stdout ?? ""),
   String(eslint.stderr ?? ""),
   String(tsc.stdout ?? ""),
@@ -108,7 +141,7 @@ const out = [
 console.log(
   JSON.stringify({
     decision: "block",
-    reason: `Des fichiers sources ont été modifiés mais lint/typecheck échoue. Corrige TOUTES les erreurs ci-dessous (zéro tolérance), puis conclus :\n${out}\nSi tu ne sais pas corriger, explique précisément le problème à l'étudiant au lieu de conclure.`,
+    reason: `Des fichiers sources ont été modifiés mais un contrôle échoue (hygiène src/, tests, lint ou types). Corrige TOUTES les erreurs ci-dessous (zéro tolérance), puis conclus :\n${out}\nSi tu ne sais pas corriger, explique précisément le problème à l'étudiant au lieu de conclure.`,
   }),
 );
 process.exit(2);

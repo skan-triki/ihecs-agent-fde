@@ -32,7 +32,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - **pnpm uniquement** (npm/yarn/npx/bun interdits — hooks ; seule exception : `npm i -g <outil>` pour installer les outils système). Node ≥ 24.
 - **Stack** : Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · déploiement Vercel (URL `*.vercel.app`, jamais de domaine perso).
-- Les fichiers de qualité (`AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/workflows/`, `.devin/config.json`, `.devin/hooks.v1.json`, `.devin/hooks.json`, `scripts/`, `.check/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
+- Les fichiers de qualité (`AGENTS.md`, `eslint.config.mjs`, `prettier.config.mjs`, `tsconfig.json`, `vitest.config.mts`, `.husky/`, `.github/`, `knip.json`, `lint-staged.config.mjs`, `pnpm-workspace.yaml`, `.devin/agents/`, `.devin/skills/`, `.devin/workflows/`, `.devin/config.json`, `.devin/mcp_config.json`, `.devin/hooks.v1.json`, `.devin/hooks.json`, `scripts/`, `.check/`) sont **verrouillés** : ne les modifie pas, même si une règle gêne. Signale le besoin à l'étudiant/enseignant.
 
 ## Zéro tolérance (mécanique)
 
@@ -47,9 +47,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Concept avant code (verrou mécanique)** : aucune écriture dans `src/**` (ni `shadcn add`, ni commit les touchant) tant que `.concept/MVP.md` n'est pas `Statut : validé` sans EXEMPLE restant. Pour accompagner l'étudiant : skill `/concept` — interview guidée, français simple, UNE question à la fois, tu rédiges `.concept/MVP.md` avec ses mots, puis `pnpm concept:check`.
 - Nouvelle dépendance : `pnpm add <pkg>` (jamais `-D` sauf outil de dev ; jamais de version publiée il y a < 7 jours — `pnpm-workspace.yaml` impose `minimumReleaseAge`).
 - Variables d'environnement : uniquement via `import { env } from "@/env"` ; pour en ajouter une, utilise le skill `/env-vars`.
-- Avant de considérer une tâche terminée : `pnpm check` doit passer à 100 % (env, format, lint `--max-warnings=0`, types, code mort).
+- Avant de considérer une tâche terminée : `pnpm check` doit passer à 100 % (env, hygiène `src/`, format, lint `--max-warnings=0`, types, tests, code mort). Logique pure dans `src/lib/` avec son `X.test.ts` voisin ; code serveur dans `src/server/` avec `import "server-only"` en tête — `pnpm src:check` et `pnpm test` les imposent mécaniquement.
 - **Avant TOUT commit : lis et applique la procédure `.check/VERIFICATION.md`** (checklist ordonnée, contrôles automatiques, test des routes, interdictions). Un rappel est injecté dans ton contexte à chaque commande `git commit`.
 - Pour livrer : utilise le skill `/ship`. Pour un audit qualité : `/quality-check`.
+- **Sas de revue code (verrou mécanique)** : avant chaque livraison, 3 sous-agents `code-review` relisent le diff en parallèle (axes `fidelite`, `qualite`, `ux`) et écrivent leur verdict dans `.reviews/<axe>.md`. Les 3 doivent être `validé` **sur le commit courant** — sinon `git push`, `gh pr create` et `gh pr merge` sont bloqués. Vérifie avec `pnpm review:check`.
 
 ## Skills techniques (consulte-les avant d'écrire le code correspondant)
 

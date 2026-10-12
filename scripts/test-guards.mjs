@@ -3,11 +3,19 @@
 // BLOQUÉ, chaque commande légitime du cours AUTORISÉE. Lancé par la CI
 // (`pnpm guards:test`) : une régression des garde-fous casse la CI.
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { journalFileErrors } from "./lib/concept.mjs";
 import { loginsCachePath, prodPendingMarker } from "./lib/readiness.mjs";
+import { codeReviewErrors } from "./lib/review.mjs";
 
 const env = { ...process.env };
 delete env.IHECS_TEACHER_BYPASS;
@@ -118,6 +126,11 @@ const MUST_PASS_EXEC = [
   "pnpm diagnostic",
   "pnpm -s diagnostic",
   "pnpm concept:check",
+  "pnpm review:check",
+  "node scripts/check-reviews.mjs",
+  "node scripts/check-src.mjs",
+  "pnpm src:check",
+  "pnpm test",
   "pnpm env:init",
   "pnpm routes:check / /about",
   "pnpm start --port 3123",
@@ -191,6 +204,7 @@ const MUST_BLOCK_EDIT = [
   ["package.json", "{}"],
   ["vercel.json", "{}"],
   ["scripts/check-env.mjs", "x"],
+  ["vitest.config.mts", "x"],
   [".devin/hooks.json", "{}"],
   [".devin/mcp_config.json", "{}"],
   [".github/dependabot.yml", "x"],
@@ -209,7 +223,19 @@ const MUST_BLOCK_EDIT = [
 const MUST_PASS_EDIT = [
   ["README.md", "Bonjour"],
   [".concept/MVP.md", "Statut : brouillon"],
+  [".concept/JOURNAL.md", "x"],
+  [".concept/reviews/finale-questionnement.md", "x"],
+  [".reviews/fidelite.md", "x"],
   ["next.config.ts", "images: { remotePatterns: [] }"],
+];
+
+// Verrou à l'écriture du concept : [fichier, old_string, new_string] — la
+// simulation du résultat doit refuser la modification.
+const MUST_BLOCK_EDIT_LOCKED = [
+  // Cocher l'étape 1 alors que sa section est encore en EXEMPLE.
+  [".concept/MVP.md", "- [ ] Étape 1 — Pitch", "- [x] Étape 1 — Pitch"],
+  // « Statut : validé » alors que l'interview est incomplète.
+  [".concept/MVP.md", "> Statut : brouillon", "> Statut : validé"],
 ];
 
 let fails = 0;
@@ -330,6 +356,33 @@ for (const fmt of ["cli", "cascade"]) {
   );
   rmSync(loginCache, { force: true });
 
+  // CONCEPT — verrou à l'écriture : la simulation du fichier après
+  // modification refuse une case cochée trop tôt et la validation anticipée.
+  // (Comptes simulés connectés pour atteindre le verrou ; suppose le MVP.md
+  // du template, encore en EXEMPLE.)
+  console.log(`\n=== ${fmt} : concept — verrou à l'écriture ===`);
+  writeFileSync(loginCache, JSON.stringify({ ts: Date.now(), missing: [] }));
+  const editPairPayload = (p, o, n) =>
+    fmt === "cli"
+      ? {
+          tool_name: "edit",
+          tool_input: { file_path: abs(p), old_string: o, new_string: n },
+        }
+      : {
+          agent_action_name: "pre_write_code",
+          tool_info: {
+            file_path: abs(p),
+            edits: [{ old_string: o, new_string: n }],
+          },
+        };
+  for (const [p, o, n] of MUST_BLOCK_EDIT_LOCKED) {
+    report(
+      runHook("scripts/hooks/guard-edit.mjs", editPairPayload(p, o, n)) === 2,
+      `${p} : « ${n.slice(0, 45)} » refusé`,
+    );
+  }
+  rmSync(loginCache, { force: true });
+
   // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.
   console.log(`\n=== ${fmt} : ordre — production à vérifier ===`);
   writeFileSync(marker, "test");
@@ -354,6 +407,69 @@ for (const fmt of ["cli", "cascade"]) {
   );
   rmSync(marker, { force: true });
 }
+
+// Libs partagées — verrous de contenu (indépendants du format de hook).
+console.log("\n=== libs : revues code / journal d'interview ===");
+report(
+  journalFileErrors().length > 0,
+  "journal d'interview sans notes réelles refusé",
+);
+
+mkdirSync(".reviews", { recursive: true });
+const headSha = String(
+  spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout ?? "",
+).trim();
+const reviewFile = (verdict, commit) =>
+  `# Revue\n\n> Verdict : ${verdict}\n> Commit : ${commit}\n`;
+for (const a of ["fidelite", "qualite", "ux"])
+  writeFileSync(`.reviews/${a}.md`, reviewFile("validé", headSha));
+report(
+  codeReviewErrors().every((e) => /sous-agent/.test(e)),
+  "revues « validé » sur HEAD acceptées (hors contrôle de lancement)",
+);
+writeFileSync(".reviews/ux.md", reviewFile("à retravailler", headSha));
+report(
+  codeReviewErrors().some((e) => /ux\.md/.test(e)),
+  "revue « à retravailler » refusée",
+);
+writeFileSync(".reviews/ux.md", reviewFile("validé", "deadbeef"));
+report(
+  codeReviewErrors().some((e) => /autre commit/.test(e)),
+  "revue portant sur un autre commit refusée",
+);
+rmSync(".reviews", { recursive: true, force: true });
+
+// src:check — hygiène mécanique (fixtures temporaires, retirées ensuite ;
+// tests sautés si l'étudiant a déjà un src/lib ou src/server réel).
+console.log("\n=== libs : hygiène src/ ===");
+const srcCheck = () =>
+  spawnSync("node", ["scripts/check-src.mjs"], { encoding: "utf8" }).status;
+if (!existsSync("src/lib")) {
+  mkdirSync("src/lib", { recursive: true });
+  writeFileSync("src/lib/tmp-guard-check.ts", "export const x = 1;\n");
+  report(srcCheck() === 1, "module src/lib sans test voisin refusé");
+  writeFileSync(
+    "src/lib/tmp-guard-check.test.ts",
+    'import { it } from "vitest";\n',
+  );
+  report(srcCheck() === 0, "module src/lib avec test voisin accepté");
+  rmSync("src/lib", { recursive: true, force: true });
+}
+if (!existsSync("src/server")) {
+  mkdirSync("src/server", { recursive: true });
+  writeFileSync("src/server/tmp-guard-check.ts", "export const y = 1;\n");
+  report(srcCheck() === 1, "module src/server sans « server-only » refusé");
+  writeFileSync(
+    "src/server/tmp-guard-check.ts",
+    'import "server-only";\nexport const y = 1;\n',
+  );
+  report(srcCheck() === 0, "module src/server borné accepté");
+  rmSync("src/server", { recursive: true, force: true });
+}
+writeFileSync("src/tmp-guard-empty.ts", "// TODO\n");
+report(srcCheck() === 1, "fichier vide de contenu refusé");
+rmSync("src/tmp-guard-empty.ts", { force: true });
+report(srcCheck() === 0, "src/ propre accepté");
 
 if (createdEnvLocal) rmSync(".env.local", { force: true });
 console.log(`\n${fails === 0 ? "TOUT EST CONFORME" : `${fails} ÉCHEC(S)`}`);

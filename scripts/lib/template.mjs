@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { gunzipSync } from "node:zlib";
 
 const TEMPLATE_OWNER = "skan-triki";
-const TEMPLATE_REPO = "ihecs-mvp-starter";
+const TEMPLATE_REPO = "ihecs-agent-fde";
 const TARBALL_URL = `https://codeload.github.com/${TEMPLATE_OWNER}/${TEMPLATE_REPO}/tar.gz/refs/heads/main`;
 
 // Fichiers officiels du template (branche main), téléchargés en HTTPS : ne
@@ -21,7 +21,7 @@ export const fetchTemplateFiles = async () => {
     return null;
   }
   const files = new Map();
-  const str = (o, n) => buf.toString("utf8", o, o + n).replace(/\0.*$/s, "");
+  const str = (o, n) => buf.toString("utf8", o, o + n).replaceAll(/\0.*$/s, "");
   let longName = null;
   for (let off = 0; off + 512 <= buf.length;) {
     const name = str(off, 100);
@@ -64,6 +64,7 @@ export const RULE_FILES = [
   "AGENTS.md",
   "CLAUDE.md",
   ".devin/config.json",
+  ".devin/mcp_config.json",
   ".devin/hooks.json",
   ".devin/hooks.v1.json",
   "eslint.config.mjs",
@@ -71,6 +72,7 @@ export const RULE_FILES = [
   "commitlint.config.mjs",
   "lint-staged.config.mjs",
   "tsconfig.json",
+  "vitest.config.mts",
   "knip.json",
   "pnpm-workspace.yaml",
   "vercel.json",
@@ -78,6 +80,8 @@ export const RULE_FILES = [
   ".nvmrc",
   ".gitignore",
   ".prettierignore",
+  ".editorconfig",
+  ".gitattributes",
 ];
 // Dans package.json, seules ces clés font partie des règles (les dépendances
 // et le nom du projet appartiennent à l'étudiant).
