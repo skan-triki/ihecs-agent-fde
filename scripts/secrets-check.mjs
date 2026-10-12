@@ -62,4 +62,7 @@ if (envFiles.length === 0 && leaks.length === 0) {
 }
 for (const f of envFiles) console.error(`✗ fichier de secrets présent : ${f}`);
 for (const l of leaks) console.error(`✗ secret probable : ${l}`);
+console.error(
+  "→ Retire le fichier .env du suivi git (`git rm --cached <fichier>` puis commit) ou la ligne fautive — ne commit jamais une vraie valeur.",
+);
 process.exit(1);

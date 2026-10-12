@@ -9,18 +9,29 @@
 //     X.test.ts — une fonction sans test est une fonction non prouvée.
 //     Exemptés : les fichiers de types (*.d.ts) et les barils (index.ts)
 //     qui ne contiennent pas de logique propre.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import { join, relative } from "node:path";
 
 const CODE_EXT = /\.(ts|tsx|mts|cts|js|jsx|css)$/;
 const TEST_FILE = /\.test\.(ts|tsx)$/;
 const EMPTY_STUB = /^(export\s*\{\s*\}|export\s+default\s*\{\s*\})\s*;?$/;
 
-const walk = (dir, out = []) => {
+// Garde anti-boucle : un lien symbolique qui boucle ne doit pas faire
+// tourner le parcours à l'infini.
+const walk = (dir, out = [], seen = new Set()) => {
   if (!existsSync(dir)) return out;
+  const real = realpathSync(dir);
+  if (seen.has(real)) return out;
+  seen.add(real);
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
+    if (statSync(p).isDirectory()) walk(p, out, seen);
     else out.push(p);
   }
   return out;
@@ -32,7 +43,7 @@ const stripComments = (src) =>
 const errors = [];
 for (const file of walk("src")) {
   const rel = relative(".", file).replaceAll("\\", "/");
-  if (!CODE_EXT.test(rel) || TEST_FILE.test(rel)) continue;
+  if (!CODE_EXT.test(rel)) continue;
   const body = stripComments(readFileSync(file, "utf8")).trim();
 
   if (body === "" || EMPTY_STUB.test(body)) {
@@ -41,6 +52,8 @@ for (const file of walk("src")) {
     );
     continue;
   }
+  // Les fichiers de test ne sont pas soumis aux règles serveur/lib.
+  if (TEST_FILE.test(rel)) continue;
 
   if (
     rel.startsWith("src/server/") &&
@@ -51,17 +64,24 @@ for (const file of walk("src")) {
     );
   }
 
-  if (
+  // Logique pure : tout module de src/lib/ (toutes extensions) exige un
+  // test voisin NON VIDE — un fichier .test.* vide ou sans it()/test() ne
+  // prouve rien.
+  const isLibModule =
     rel.startsWith("src/lib/") &&
-    rel.endsWith(".ts") &&
-    !rel.endsWith(".d.ts") &&
-    !rel.endsWith("/index.ts") &&
-    rel !== "src/lib/index.ts" &&
-    !existsSync(file.replace(/\.ts$/, ".test.ts"))
-  ) {
-    errors.push(
-      `${rel} : module de logique sans test — crée ${rel.replace(/\.ts$/, ".test.ts")} à côté (vitest, convention du skill /nextjs-react-patterns).`,
-    );
+    /\.(ts|tsx|mts|mjs|js|jsx|cts|cjs)$/.test(rel) &&
+    !/\.d\.ts$/.test(rel) &&
+    !/(^|\/)index\.[a-z]+$/.test(rel);
+  if (isLibModule) {
+    const stem = rel.replace(/\.[a-z]+$/, "");
+    const testPath = `${stem}.test.${rel.endsWith(".tsx") ? "tsx" : "ts"}`;
+    const testFile = join(".", testPath);
+    const testBody = existsSync(testFile) ? readFileSync(testFile, "utf8") : "";
+    if (!/\b(it|test|describe)\s*\(/.test(testBody)) {
+      errors.push(
+        `${rel} : module de logique sans test réel — crée ${testPath} à côté avec au moins un it()/test() (vitest, convention du skill /nextjs-react-patterns).`,
+      );
+    }
   }
 }
 

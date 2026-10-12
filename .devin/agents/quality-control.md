@@ -18,10 +18,12 @@ Exécute dans cet ordre et note le résultat de chacun :
 
 1. `pnpm concept:check`
 2. `pnpm env:check`
-3. `pnpm format:check`
-4. `pnpm lint`
-5. `pnpm typecheck`
-6. `pnpm knip`
+3. `pnpm src:check`
+4. `pnpm format:check`
+5. `pnpm lint`
+6. `pnpm typecheck`
+7. `pnpm test`
+8. `pnpm knip`
 
 Un seul échec = verdict **❌ NON CONFORME**, quelle que soit la qualité du reste.
 
@@ -71,9 +73,11 @@ Un seul échec = verdict **❌ NON CONFORME**, quelle que soit la qualité du re
 | Contrôle | Résultat |
 |---|---|
 | env:check | ✅/❌ |
+| src:check | ✅/❌ |
 | format:check | ✅/❌ |
 | lint | ✅/❌ (n erreurs) |
 | typecheck | ✅/❌ |
+| test | ✅/❌ |
 | knip | ✅/❌ |
 
 ### Points bloquants (à corriger)

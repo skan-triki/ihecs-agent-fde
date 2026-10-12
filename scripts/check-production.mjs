@@ -12,7 +12,17 @@ const git = (args) => spawnSync("git", args, { encoding: "utf8" });
 
 const projectUrl = () => {
   const arg = process.argv[2];
-  if (arg) return arg.replace(/\/$/, "");
+  if (arg) {
+    // Une URL arbitraire pourrait simuler la prod (endpoint qui renvoie le
+    // SHA attendu) : seule l'URL *.vercel.app du projet est acceptée.
+    if (!/^https:\/\/[\w-]+(\.[\w-]+)*\.vercel\.app\/?$/i.test(arg)) {
+      console.error(
+        "✗ L'URL de production doit être celle du projet Vercel : https://<projet>.vercel.app",
+      );
+      process.exit(1);
+    }
+    return arg.replace(/\/$/, "");
+  }
   if (!existsSync(".vercel/project.json")) return null;
   const project = JSON.parse(readFileSync(".vercel/project.json", "utf8"));
   const name =

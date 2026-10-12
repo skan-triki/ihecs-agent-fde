@@ -27,6 +27,8 @@ Dans l'ordre où ils doivent être lancés. En français simple : ce que fait ch
 | 9   | `pnpm check`         | **Raccourci qui enchaîne les contrôles 2→8** (env, hygiène src, format, lint, types, tests, code mort).                                                                                                                                           | La 1ʳᵉ erreur stoppe la chaîne : corriger puis relancer.                                                                |
 | 10  | `pnpm build`         | `next build` fabrique la version de production. Prouve que l'app compile réellement (pages, routes, Server/Client Components).                                                                                                                    | Lire l'erreur de build ; souvent un type ou un import — corriger la cause.                                              |
 | 11  | `pnpm verify`        | **La vérification complète avant livraison** : `check` (2→8) + `build`.                                                                                                                                                                           | Idem : corriger puis relancer jusqu'à 100 %.                                                                            |
+| 12  | `pnpm review:check`  | Les 3 relecteurs code indépendants (`.reviews/`) ont validé le commit courant — exigé avant tout push/PR/fusion.                                                                                                                                  | Lancer les sous-agents `code-review` sur le diff, corriger ce qu'ils bloquent.                                          |
+| 13  | `pnpm prod:check`    | Après chaque fusion : la production Vercel sert bien le dernier commit de `main` et répond en HTTP 200.                                                                                                                                           | Attendre le déploiement Vercel, puis relire l'erreur — corriger et relivrer.                                            |
 
 > En parallèle : `pnpm dev` lance le serveur de développement sur <http://localhost:3000> pour tester à la main pendant qu'on code.
 
@@ -109,6 +111,13 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 
 Règles modifiées par erreur ? `pnpm rules:sync` remet les versions officielles.
 
+**Bypass enseignant** (maintenance du dépôt modèle uniquement) : la variable
+d'environnement `IHECS_TEACHER_BYPASS=true`, posée par l'enseignant dans son
+propre terminal — jamais par l'agent — désactive les verrous d'écriture sur les
+fichiers de règles et le contrôle « concept avant code » au commit. Elle sert à
+faire évoluer le template ; les étudiants ne l'utilisent jamais, et
+`guard-exec` refuse à l'agent toute commande qui la mentionne.
+
 ## 6. Si un contrôle échoue : le protocole
 
 1. **Lire l'erreur en entier** — les outils indiquent `fichier:ligne` et la règle violée.
@@ -127,3 +136,10 @@ au commit / push      →  hooks git (concept, lint-staged, commitlint, check, r
 après le push         →  gh pr checks --watch → CI verte → fusion
 mise en ligne         →  build Vercel = concept + règles + secrets + verify
 ```
+
+## 8. Test comportemental du mentor (scénarios de rejeu)
+
+Les contrôles mécaniques prouvent la **forme**, pas que le mentor pose de
+bonnes questions. Pour ça : rejouer les transcripts de `docs/scenarios/`
+(réponses d'étudiant prêtes à coller, réaction attendue à chaque étape).
+Procédure complète et critères de réussite : `docs/scenarios/README.md`.

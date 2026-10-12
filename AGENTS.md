@@ -44,7 +44,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Workflow
 
-- **Concept avant code (verrou mécanique)** : aucune écriture dans `src/**` (ni `shadcn add`, ni commit les touchant) tant que `.concept/MVP.md` n'est pas `Statut : validé` sans EXEMPLE restant. Pour accompagner l'étudiant : skill `/concept` — interview guidée, français simple, UNE question à la fois, tu rédiges `.concept/MVP.md` avec ses mots, puis `pnpm concept:check`.
+- **Concept avant code (verrou mécanique)** : aucune écriture dans `src/**` ni `public/**` (ni `shadcn add`, ni commit les touchant) tant que `.concept/MVP.md` n'est pas `Statut : validé` sans EXEMPLE restant. Pour accompagner l'étudiant : skill `/concept` — interview guidée, français simple, UNE question à la fois, tu rédiges `.concept/MVP.md` avec ses mots, puis `pnpm concept:check`.
 - Nouvelle dépendance : `pnpm add <pkg>` (jamais `-D` sauf outil de dev ; jamais de version publiée il y a < 7 jours — `pnpm-workspace.yaml` impose `minimumReleaseAge`).
 - Variables d'environnement : uniquement via `import { env } from "@/env"` ; pour en ajouter une, utilise le skill `/env-vars`.
 - Avant de considérer une tâche terminée : `pnpm check` doit passer à 100 % (env, hygiène `src/`, format, lint `--max-warnings=0`, types, tests, code mort). Logique pure dans `src/lib/` avec son `X.test.ts` voisin ; code serveur dans `src/server/` avec `import "server-only"` en tête — `pnpm src:check` et `pnpm test` les imposent mécaniquement.

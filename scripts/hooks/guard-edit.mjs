@@ -50,14 +50,23 @@ const block = (reason) => {
 const ti = payload.tool_input ?? {};
 const tinfo = payload.tool_info ?? {};
 const target = String(
-  ti.file_path ?? ti.path ?? ti.notebook_path ?? tinfo.file_path ?? "",
+  ti.file_path ??
+    ti.path ??
+    ti.notebook_path ??
+    ti.target_file ??
+    tinfo.file_path ??
+    tinfo.path ??
+    tinfo.notebook_path ??
+    tinfo.target_file ??
+    "",
 );
 const content = [
   ti.new_string,
+  ti.new_str,
   ti.content,
   ti.new_source,
-  ti.edits?.map((e) => e.new_text),
-  tinfo.edits?.map((e) => e.new_string),
+  ti.edits?.map((e) => e.new_text ?? e.new_string ?? e.new_str),
+  tinfo.edits?.map((e) => e.new_string ?? e.new_text ?? e.new_str),
 ]
   .filter(Boolean)
   .join("\n");
@@ -65,11 +74,14 @@ const addedText = content || "";
 
 const norm = target.replaceAll("\\", "/");
 const base = norm.split("/").pop();
+const baseLower = base.toLowerCase();
 
+// Comparaison en minuscules : NTFS/APFS sont insensibles à la casse, donc
+// « SRC/… », « .ENV.local » ou « Agents.md » doivent être bloqués aussi.
 const protectedFiles = new Set([
-  "AGENTS.md",
-  "AGENT.md",
-  "CLAUDE.md",
+  "agents.md",
+  "agent.md",
+  "claude.md",
   "global_rules.md",
   "eslint.config.mjs",
   "prettier.config.mjs",
@@ -103,18 +115,25 @@ const relFromCwd = relative(process.cwd(), target).replaceAll("\\", "/");
 const inProject =
   relFromCwd !== "" && !relFromCwd.startsWith("..") && !isAbsolute(relFromCwd);
 const normNoDrive = norm.replace(/^[A-Za-z]:\//, "");
-const relPath = inProject ? relFromCwd : normNoDrive;
+const relPath = (inProject ? relFromCwd : normNoDrive).toLowerCase();
 
 // Zéro tolérance : l'agent n'écrit QUE dans le dossier du projet (pas dans le
 // dossier utilisateur, la config de l'IDE, un dossier temporaire…).
-if (target && !inProject) {
+// Un outil d'écriture reconnu sans fichier cible identifiable = payload non
+// compris → on refuse par prudence (fail-closed) plutôt que laisser passer.
+if (!target) {
+  block(
+    "Outil d'écriture sans fichier cible identifiable : action refusée par prudence. Utilise l'outil d'édition du projet avec un chemin de fichier.",
+  );
+}
+if (!inProject) {
   block(
     "L'agent n'écrit que dans le dossier du projet : écrire ailleurs (dossier utilisateur, réglages de l'IDE, fichiers temporaires…) est interdit.",
   );
 }
 
 const isProtected =
-  protectedFiles.has(base) ||
+  protectedFiles.has(baseLower) ||
   protectedFiles.has(relPath) ||
   /^(package|vercel)\.json$/.test(relPath) ||
   /^\.vercelignore$/.test(relPath) ||
@@ -124,14 +143,14 @@ const isProtected =
 
 if (isProtected) {
   block(
-    "Ce fichier fait partie des garde-fous du cours (qualité, hooks, CI, agents) : sa modification est réservée à l'enseignant. Si une règle bloque un besoin légitime, expliquez-le dans votre réponse et proposez le changement souhaité.",
+    "Ce fichier fait partie des garde-fous du cours (qualité, hooks, CI, agents) : sa modification est réservée à l'enseignant. Si une règle bloque un besoin légitime, explique-le dans ta réponse et propose le changement souhaité.",
   );
 }
 
 // Fichiers de secrets : jamais écrits par l'agent (l'étudiant les édite lui-même).
-if (/^\.env(\.|$)/.test(base) && base !== ".env.example") {
+if (/^\.env(\.|$)/.test(baseLower) && baseLower !== ".env.example") {
   block(
-    "Interdit : l'agent ne peut pas écrire les fichiers `.env*` de secrets. Demandez à l'étudiant de créer/éditer `.env.local` lui-même, ou utilisez `vercel env add`.",
+    "Interdit : l'agent ne peut pas écrire les fichiers `.env*` de secrets. Demande à l'étudiant de créer/éditer `.env.local` lui-même (`pnpm env:init` pour la création), ou utilise `vercel env add` pour la production.",
   );
 }
 
@@ -170,18 +189,17 @@ if (/^\.concept\/MVP\.md$/i.test(relPath)) {
   const resultingText = (before) => {
     if (typeof ti.content === "string") return ti.content;
     const ops = [];
-    if (
-      typeof ti.old_string === "string" &&
-      typeof ti.new_string === "string"
-    ) {
-      ops.push([ti.old_string, ti.new_string]);
+    const oi = ti.old_string ?? ti.old_str;
+    const ni = ti.new_string ?? ti.new_str;
+    if (typeof oi === "string" && typeof ni === "string") {
+      ops.push([oi, ni]);
     }
     for (const e of [
       ...(Array.isArray(ti.edits) ? ti.edits : []),
       ...(Array.isArray(tinfo.edits) ? tinfo.edits : []),
     ]) {
-      const o = e?.old_string ?? e?.old_text;
-      const n = e?.new_string ?? e?.new_text;
+      const o = e?.old_string ?? e?.old_text ?? e?.old_str;
+      const n = e?.new_string ?? e?.new_text ?? e?.new_str;
       if (typeof o === "string" && typeof n === "string") ops.push([o, n]);
     }
     if (ops.length === 0) return null;
@@ -195,6 +213,18 @@ if (/^\.concept\/MVP\.md$/i.test(relPath)) {
 
   const before = existsSync(target) ? readFileSync(target, "utf8") : "";
   const after = resultingText(before);
+  // Reconstitution impossible (forme d'édition non reconnue) : on refuse
+  // quand même tout contenu qui cocherait une étape ou poserait le statut —
+  // sinon une forme exotique contournerait le verrou.
+  if (
+    after === null &&
+    (/statut\s*:\s*validé/i.test(addedText) ||
+      /-\s*\[[xX]\]\s*Étape\s+\d/i.test(addedText))
+  ) {
+    block(
+      "Écriture de .concept/MVP.md sous une forme non vérifiable : refusée par prudence. Utilise l'outil d'édition standard.",
+    );
+  }
   if (after !== null) {
     const errors = [];
     const sections = parseSections(after);
@@ -252,14 +282,14 @@ if (/^(src|public)\//.test(relPath)) {
   );
   if (concept.status !== 0) {
     block(
-      "Verrou « concept avant code » : le concept MVP n'est pas encore validé dans .concept/MVP.md, donc l'écriture de code applicatif (src/) est bloquée. Lance immédiatement le skill /concept avec l'étudiant : une interview guidée en français simple, UNE question à la fois, qui remplit .concept/MVP.md (pitch, problème, utilisateurs, parcours, périmètre, écrans, données & IA, critères de succès, risques). Ne code rien avant qu'il soit validé. Vérifie ensuite avec `pnpm concept:check`.",
+      "Verrou « concept avant code » : le concept MVP n'est pas encore validé dans .concept/MVP.md, donc l'écriture de code applicatif (src/ et public/) est bloquée. Lance immédiatement le skill /concept avec l'étudiant : une interview guidée en français simple, UNE question à la fois, qui remplit .concept/MVP.md (pitch, problème, utilisateurs, parcours, périmètre, écrans, données & IA, critères de succès, risques). Ne code rien avant qu'il soit validé. Vérifie ensuite avec `pnpm concept:check`.",
     );
   }
 }
 
 // Suppressions de diagnostics interdites.
 const suppression =
-  /\/\/\s*eslint-disable|\/\*\s*eslint-disable|\/\/\s*@ts-ignore|\/\/\s*@ts-nocheck|\/\/\s*@ts-expect-error\b/;
+  /\/\/\s*eslint-disable|\/\*\s*eslint-disable|\/\/\s*@ts-(ignore|nocheck|expect-error)\b|\/\*\s*@ts-(ignore|nocheck|expect-error)/;
 // Options qui désactivent un contrôle (build sans types/lint, env non validé).
 // La regex est écrite en groupes non capturants : écrire les noms des options
 // en toutes lettres ici déclencherait ce même hook sur le contenu.
@@ -275,7 +305,7 @@ if (
 
 if (suppression.test(addedText)) {
   block(
-    "Désactiver un diagnostic (eslint-disable, @ts-ignore, @ts-expect-error) est interdit : corrigez la cause. Une exception validée doit être documentée (`-- justification`) et validée par l'enseignant.",
+    "Désactiver un diagnostic (eslint-disable, @ts-ignore, @ts-expect-error) est interdit : corrige la cause. Si une exception est vraiment justifiée, explique-la à l'étudiant et laisse l'enseignant décider.",
   );
 }
 

@@ -36,7 +36,7 @@ const command = String(
 if (!command.trim()) process.exit(0);
 
 const block = (reason) => {
-  const msg = `${reason} [garde-fou du cours — liste blanche]`;
+  const msg = `${reason} [garde-fou du cours]`;
   if (isCascade) console.error(msg);
   else console.log(JSON.stringify({ decision: "block", reason: msg }));
   process.exit(2);
@@ -74,11 +74,7 @@ if (/--no-verify\b/.test(command)) {
     "Contourner les hooks git (--no-verify) est interdit : corrige la cause de l'échec.",
   );
 }
-if (
-  /(^|[\s"'`=/\\])\.env(\.local|\.development\.local|\.production\.local|\.test\.local)?(?![\w.-])/.test(
-    command,
-  )
-) {
+if (/(^|[\s"'`=/\\:])\.env(?![\w.-]*\bexample\b)/.test(command)) {
   block(
     "Lire ou écrire un fichier `.env*` de secrets est interdit : `pnpm env:init` crée `.env.local`, l'étudiant y met lui-même ses valeurs.",
   );
@@ -185,9 +181,15 @@ const PROTECTED = [
 ];
 const isProtectedPath = (tok) => {
   if (!tok || tok.startsWith("-")) return false;
-  const r = rel(tok);
+  const r = rel(tok).toLowerCase();
   return insideProject(tok) && PROTECTED.some((re) => re.test(r));
 };
+// Pathspecs magiques ou globaux (« . », « * », « :(icase)… », « :(top)… ») :
+// ils peuvent viser les règles — traités comme protégés dans les opérations
+// destructrices (rm, mv, checkout, restore) ou réécrivantes (outils --fix).
+const isDangerousPath = (tok) =>
+  /^\.{1,2}$/.test(tok) || /^:/.test(tok) || /[*?[\]{}()]/.test(tok);
+const pathDanger = (t) => isProtectedPath(t) || isDangerousPath(t);
 
 // --- Données de référence -------------------------------------------------
 const readJson = (p) => {
@@ -271,8 +273,16 @@ const rules = {
         "update",
         "up",
       ].includes(sub)
-    )
+    ) {
+      if (sub === "add") {
+        const bad = positional(rest).find(
+          (t) => !/^(@[\w.-]+\/)?[\w.-]+(@[\w.^~<>*xX0-9.-]+)?$/.test(t),
+        );
+        if (bad)
+          return `\`pnpm add\` n'accepte que des paquets du registre npm (nom@version) : « ${bad} » (file:, link:, git+, tarball…) est interdit.`;
+      }
       return null;
+    }
     if (["list", "ls", "why", "outdated", "audit"].includes(sub)) return null;
     if (sub === "exec") {
       const BIN = [
@@ -288,7 +298,22 @@ const rules = {
       ];
       if (!BIN.includes(rest[0] ?? ""))
         return `\`pnpm exec\` est limité aux outils du projet : ${BIN.join(", ")}.`;
-      if (rest[0] === "shadcn" && ["add", "create"].includes(rest[1] ?? "")) {
+      // Outils capables de réécrire des fichiers — mais seulement quand ils
+      // écrivent vraiment : `eslint` n'écrit qu'avec --fix, `prettier` qu'avec
+      // --write, `tsc` sauf --noEmit ; `lint-staged` écrit toujours. Un outil
+      // qui écrit ne vise jamais les règles ni des pathspecs globaux
+      // (« . », « * » ratisseraient .husky/, scripts/…).
+      const toolWrites =
+        rest[0] === "lint-staged" ||
+        (rest[0] === "eslint" && rest.includes("--fix")) ||
+        (rest[0] === "prettier" && rest.includes("--write")) ||
+        (rest[0] === "tsc" && !rest.includes("--noEmit"));
+      if (toolWrites && rest.slice(1).some(pathDanger))
+        return `Cet outil peut réécrire des fichiers : viser les règles du cours ou des chemins globaux (., *, :) est interdit.`;
+      if (
+        rest[0] === "shadcn" &&
+        ["add", "create", "init"].includes(rest[1] ?? "")
+      ) {
         const missing = devMissing();
         if (missing.length > 0) {
           return `Installation pas terminée (il manque ${missing.join(", ")}) : lance d'abord /install-tools.`;
@@ -299,20 +324,36 @@ const rules = {
       }
       return null;
     }
-    const script = sub === "run" ? rest[0] : sub;
-    if (script && SCRIPTS.has(script)) return null;
+    const script = sub === "run" ? positional(rest)[0] : sub;
+    if (script && SCRIPTS.has(script)) {
+      if (script === "prod:check") {
+        const extra =
+          sub === "run" ? positional(rest).slice(1) : positional(rest);
+        if (
+          extra.some(
+            (a) => !/^https:\/\/[\w-]+(\.[\w-]+)*\.vercel\.app\/?$/i.test(a),
+          )
+        )
+          return "`pnpm prod:check` ne vérifie que la vraie production : URL https://<projet>.vercel.app uniquement.";
+      }
+      return null;
+    }
+    if (sub === "run")
+      return `Le script « ${script ?? "?"} » n'existe pas dans package.json — vérifie son nom (scripts du projet : ${[...SCRIPTS].join(", ")}).`;
     return `\`pnpm ${sub}\` n'est pas autorisé. Utilise un script du projet (${[...SCRIPTS].join(", ")}) ou \`pnpm add\`.`;
   },
 
   npm(args) {
     if (args.length === 1 && ["-v", "--version"].includes(args[0])) return null;
     const [sub, ...rest] = args;
-    const global = rest.some((t) => t === "-g" || t === "--global");
+    const flags = flagsOf(rest);
     const pkgs = positional(rest);
+    const okFlags =
+      flags.length > 0 && flags.every((f) => ["-g", "--global"].includes(f));
     const okPkgs =
       pkgs.length > 0 &&
       pkgs.every((p) => /^(pnpm|vercel)(@[\w.^~-]+)?$/.test(p));
-    if (["install", "i"].includes(sub ?? "") && global && okPkgs) return null;
+    if (["install", "i"].includes(sub ?? "") && okFlags && okPkgs) return null;
     return MSG.npm;
   },
 
@@ -329,6 +370,13 @@ const rules = {
   node(args) {
     if (args.length === 1 && ["--version", "-v"].includes(args[0])) return null;
     const file = (args[0] ?? "").replaceAll("\\", "/");
+    // Les hooks sont lancés par le système, jamais à la main — les exécuter
+    // directement permettrait par ex. de forger le journal des sous-agents.
+    if (
+      /^(\.\/)?scripts\/hooks\//.test(file) &&
+      !/session-onboarding\.mjs$/.test(file)
+    )
+      return "Les hooks sont lancés par le système, pas à la main. (Diagnostic autorisé : `node scripts/hooks/session-onboarding.mjs --human`.)";
     if (/^(\.\/)?scripts\/[\w./-]+\.m?js$/.test(file) && !file.includes(".."))
       return null;
     return MSG.node;
@@ -339,9 +387,23 @@ const rules = {
     if (a[0] === "--no-pager") a.shift();
     const [sub, ...rest] = a;
     if (sub === "--version" && rest.length === 0) return null;
+    if (["help", "-h", "--help", "-P"].includes(sub)) return null;
     if (!sub || sub.startsWith("-"))
-      return "Options globales de git interdites (`-c`, `-C`, `--git-dir`…).";
-    const touches = rest.some(isProtectedPath);
+      return "Options globales de git interdites (`-c`, `-C`, `--git-dir`…). Si une option est vraiment nécessaire, explique le besoin à l'étudiant.";
+    // Options d'exécution détournée ou d'écriture de fichier : exécuter une
+    // commande distante (--upload-pack/--receive-pack/--exec), changer le
+    // dépôt visé (--repo/--git-dir/--work-tree) ou écrire dans un fichier
+    // (--output, -o) contournent les autres verrous.
+    if (
+      rest.some((t) =>
+        /^--(upload-pack|receive-pack|exec|repo|git-dir|work-tree|config-env|output)/.test(
+          t,
+        ),
+      ) ||
+      rest.includes("-o")
+    )
+      return "Options git de contournement (--upload-pack, --receive-pack, --exec, --repo, --output, -o…) interdites.";
+    const touches = rest.some(pathDanger);
     switch (sub) {
       case "status":
       case "diff":
@@ -350,7 +412,6 @@ const rules = {
       case "add":
       case "pull":
       case "fetch":
-      case "switch":
       case "stash":
       case "init":
       case "ls-files":
@@ -361,11 +422,26 @@ const rules = {
       case "shortlog":
       case "describe":
       case "tag":
-      case "remote":
       case "merge":
       case "cherry-pick":
       case "revert":
         return null;
+      case "switch":
+        if (
+          rest.some((t) =>
+            ["-f", "--force", "-C", "--force-create"].includes(t),
+          )
+        )
+          return "`git switch --force` écrase le travail non enregistré : interdit.";
+        return null;
+      case "remote": {
+        const subs = rest.filter((t) => !t.startsWith("-"));
+        const ok =
+          (subs.length === 0 || ["get-url", "show"].includes(subs[0] ?? "")) &&
+          flagsOf(rest).every((f) => ["-v", "--verbose"].includes(f));
+        if (ok) return null;
+        return "`git remote` est en lecture seule (`git remote -v`, `git remote get-url`) : modifier l'URL du dépôt est réservé à l'enseignant.";
+      }
       case "commit": {
         for (let i = 0; i < rest.length; i++) {
           const t = rest[i];
@@ -393,31 +469,48 @@ const rules = {
         if (
           rest.some(
             (t) =>
-              /^(-f|--force.*|--mirror|--delete|-d|--prune)$/.test(t) ||
-              /^-[A-Za-z]*f/.test(t),
+              /^(--force.*|--mirror|--delete|--prune)$/.test(t) ||
+              /^-[A-Za-z0-9]*[fd]/.test(t),
           )
         ) {
           return "Le force push et la suppression de branches distantes sont interdits.";
         }
         const pos = positional(rest);
-        if (pos.slice(1).some((r) => r.startsWith("+") || r.startsWith(":"))) {
+        // `git push origin HEAD:main`, `git push HEAD:refs/heads/main` (remote
+        // implicite) : un positionnel contenant « : » est un refspec, pas un
+        // remote. La cible = ce qu'il y a après « : », forme longue comprise
+        // (« refs/heads/main » → « main »).
+        const refspecs = pos[0]?.includes(":") ? pos : pos.slice(1);
+        if (
+          pos.some((r) => r.startsWith("+")) ||
+          refspecs.some((r) => r.startsWith(":"))
+        ) {
           return "Refspec forcée ou suppression distante interdite.";
         }
-        const remote = pos[0] ?? "origin";
+        const remote = pos[0] && !pos[0].includes(":") ? pos[0] : "origin";
         const current = String(
           run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).stdout,
         ).trim();
-        const targets = (
-          pos.length > 1
-            ? pos.slice(1).map((r) => r.split(":").pop())
-            : [current]
-        ).map((t) => (t === "HEAD" ? current : t));
+        const dstOf = (r) => {
+          const dst = (r.includes(":") ? r.split(":").pop() : r)
+            .replace(/^\+/, "")
+            .replace(/^refs\/heads\//, "");
+          return dst === "HEAD" ? current : dst;
+        };
+        const targets = refspecs.length > 0 ? refspecs.map(dstOf) : [current];
         if (targets.includes("main")) {
-          const exists =
-            run("git", ["ls-remote", "--exit-code", "--heads", remote, "main"])
-              .status === 0;
-          if (exists) {
+          const probe = run("git", [
+            "ls-remote",
+            "--exit-code",
+            "--heads",
+            remote,
+            "main",
+          ]);
+          if (probe.status === 0) {
             return "Pousser directement sur `main` est interdit : crée une branche et passe par une PR (skill /ship). Seul le tout premier envoi de `main` est autorisé.";
+          }
+          if (probe.status !== 2) {
+            return "Impossible de vérifier la branche distante (réseau ?) : push vers `main` refusé par prudence — réessaie connecté.";
           }
           // Tout premier envoi de main (mise en route GitHub) : autorisé.
           return null;
@@ -428,7 +521,10 @@ const rules = {
         if (
           rest.includes("--") ||
           rest.includes(".") ||
-          rest.some((t) => ["-f", "--force", "-p", "--patch"].includes(t)) ||
+          rest.some((t) =>
+            ["-f", "--force", "-p", "--patch", "-B"].includes(t),
+          ) ||
+          positional(rest).length > 1 ||
           touches
         ) {
           return "`git checkout` ne sert ici qu'à changer de branche (`git switch` est préférable) : restaurer ou écraser des fichiers par checkout est interdit.";
@@ -440,13 +536,10 @@ const rules = {
         return null;
       case "branch":
         if (
-          rest.some(
-            (t) =>
-              ["-D", "-f", "--force"].includes(t) ||
-              (t === "--delete" && rest.includes("--force")),
-          )
+          rest.some((t) => ["-D", "-f", "--force", "-M", "-C"].includes(t)) ||
+          (rest.includes("--delete") && rest.includes("--force"))
         ) {
-          return "Supprimer de force une branche est interdit.";
+          return "Supprimer ou écraser une branche de force est interdit.";
         }
         return null;
       case "rebase":
@@ -484,7 +577,7 @@ const rules = {
         return "Modifier la configuration git est interdit (lecture seule : `git config --get <clé>`).";
       }
       default:
-        return `\`git ${sub}\` n'est pas autorisé dans ce cours.`;
+        return `\`git ${sub}\` n'est pas autorisé dans ce cours — dis à l'étudiant ce que tu veux faire, un équivalent autorisé existe sûrement.`;
     }
   },
 
@@ -557,7 +650,7 @@ const rules = {
         return null;
       }
     }
-    return `\`gh ${[sub, sub2].filter(Boolean).join(" ")}\` n'est pas autorisé dans ce cours.`;
+    return `\`gh ${[sub, sub2].filter(Boolean).join(" ")}\` n'est pas autorisé dans ce cours — dis à l'étudiant ce que tu veux faire, un équivalent autorisé existe sûrement.`;
   },
 
   vercel(args) {
@@ -694,12 +787,32 @@ for (const seg of segments) {
   }
   const prog = first.toLowerCase().replace(/\.(exe|cmd|bat|ps1)$/, "");
   if (READ_ONLY.has(prog)) {
-    const TEXT_ONLY = ["echo", "write-output", "sleep", "start-sleep", "date"];
+    // `sort -o <fichier>` écrit dans un fichier : ça contourne l'outil
+    // d'édition (et peut réécrire un hook, un .env…).
     if (
-      !TEXT_ONLY.includes(prog) &&
+      prog === "sort" &&
+      args.some((t) => t === "-o" || t === "--output" || /^--output=/.test(t))
+    )
+      block("`sort -o` écrit dans un fichier : utilise l'outil d'édition.");
+    const TEXT_ONLY = ["echo", "write-output", "sleep", "start-sleep", "date"];
+    // Ces commandes affichent leur argument tel quel : interdit d'y mettre
+    // une expansion de variable ($SECRET, %KEY%, $env:X…) qui afficherait un
+    // secret ou l'état du système.
+    if (TEXT_ONLY.includes(prog)) {
+      if (args.some((t) => /%\w+%|\$[\w({]|`/.test(t)))
+        block(
+          "Afficher des variables d'environnement (`$VAR`, `%VAR%`…) est interdit : elles peuvent contenir des secrets.",
+        );
+      continue;
+    }
+    // « /x » = options Windows (dir /b, findstr /m, sort /?), pas des chemins.
+    if (
       args.some(
         (t) =>
-          !t.startsWith("-") && !insideProject(t) && t !== "/etc/os-release",
+          !t.startsWith("-") &&
+          !/^\/[A-Za-z?]+$/.test(t) &&
+          !insideProject(t) &&
+          t !== "/etc/os-release",
       )
     ) {
       block("Lire des fichiers hors du projet est interdit.");

@@ -30,10 +30,17 @@ if (!/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|css)$/.test(filePath)) {
   process.exit(0);
 }
 
-const run = (cmd, args) => {
-  const r = spawnSync(cmd, args, {
+// Pas de shell : chaque argument part tel quel (un nom de fichier contenant
+// « & » n'exécute rien). Et jamais de « pnpm » : sous Windows c'est un .cmd
+// que Node refuse de lancer sans shell. On invoque donc les outils du projet
+// par leur vrai binaire JS — portable Windows/macOS/Linux.
+const TOOL_BIN = {
+  eslint: "node_modules/eslint/bin/eslint.js",
+  prettier: "node_modules/prettier/bin/prettier.cjs",
+};
+const run = (tool, args) => {
+  const r = spawnSync(process.execPath, [TOOL_BIN[tool], ...args], {
     encoding: "utf8",
-    shell: process.platform === "win32",
     timeout: 25_000,
   });
   return {
@@ -44,13 +51,7 @@ const run = (cmd, args) => {
 };
 
 if (/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(filePath)) {
-  const eslint = run("pnpm", [
-    "exec",
-    "eslint",
-    "--fix",
-    "--no-warn-ignored",
-    filePath,
-  ]);
+  const eslint = run("eslint", ["--fix", "--no-warn-ignored", filePath]);
   if (eslint.status !== 0) {
     const msg = `Le fichier vient d'être reformaté (ESLint --fix). ERREURS RESTANTES à corriger avant de continuer :\n${eslint.stdout || eslint.stderr}`;
     if (isCascade) console.log(msg);
@@ -67,7 +68,7 @@ if (/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(filePath)) {
   }
 }
 
-run("pnpm", ["exec", "prettier", "--write", filePath]);
+run("prettier", ["--write", filePath]);
 
 let remaining = "";
 try {

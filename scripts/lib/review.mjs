@@ -4,17 +4,15 @@
 // revue obsolète et exige une nouvelle relecture).
 // Utilisé par scripts/check-reviews.mjs (`pnpm review:check`) et par le hook
 // guard-exec.mjs (blocage de push / gh pr create / gh pr merge).
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
-import { subagentLogActive, subagentRan } from "./subagents.mjs";
+import {
+  headSha,
+  subagentLaunchesAt,
+  subagentLogActive,
+} from "./subagents.mjs";
 
 const CODE_AXES = ["fidelite", "qualite", "ux"];
-
-const headSha = () =>
-  String(
-    spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout ?? "",
-  ).trim();
 
 const field = (raw, name) => {
   const m = new RegExp(
@@ -26,12 +24,14 @@ const field = (raw, name) => {
 
 export const codeReviewErrors = () => {
   const errors = [];
-  if (subagentLogActive() && !subagentRan("code-review")) {
+  const sha = headSha();
+  // Preuve de lancement : 3 relecteurs (un par axe) doivent avoir été lancés
+  // SUR CE commit — un lancement ancien ne vaut plus après un nouveau commit.
+  if (subagentLogActive() && subagentLaunchesAt("code-review", sha) < 3) {
     errors.push(
-      "Aucun sous-agent `code-review` n'a été lancé — les revues doivent venir de relecteurs indépendants (run_subagent), pas d'un fichier écrit à la main.",
+      "Les 3 sous-agents `code-review` n'ont pas été lancés sur ce commit — les revues doivent venir de relecteurs indépendants (run_subagent) sur l'état actuel du code, pas d'un fichier écrit à la main ni d'une relecture d'un ancien commit. (Changement d'IDE en cours de projet : supprime `.git/ihecs-subagents.log` pour désactiver cette preuve.)",
     );
   }
-  const sha = headSha();
   for (const axis of CODE_AXES) {
     const path = `.reviews/${axis}.md`;
     if (!existsSync(path)) {

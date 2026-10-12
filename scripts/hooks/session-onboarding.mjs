@@ -113,11 +113,11 @@ const steps = [
     !authOk,
     `connexion de l'étudiant : ${logins} (à lancer par l'étudiant dans le terminal)`,
   ],
-  [!checks.concept, "/concept — définir le MVP (obligatoire avant tout code)"],
   [
     !checks.origin || !checks.vercelLinked,
     "/bootstrap — mettre le projet sur GitHub et en ligne sur Vercel",
   ],
+  [!checks.concept, "/concept — définir le MVP (obligatoire avant tout code)"],
 ];
 const next =
   steps.find(([todo]) => todo)?.[1] ??

@@ -37,6 +37,9 @@ if (missingInExample.length || missingInEnvTs.length) {
       `✗ Présentes dans .env.example mais non déclarées dans src/env.ts : ${missingInEnvTs.join(", ")}`,
     );
   }
+  console.error(
+    "→ Répare via le skill /env-vars : il aligne src/env.ts, .env.example et .env.local (jamais de valeur réelle dans .env.example).",
+  );
   process.exit(1);
 }
 
