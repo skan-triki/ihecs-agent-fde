@@ -63,8 +63,9 @@ jobs:
     name: Revues code validées (.reviews/)
     # Même logique que le job « concept » : filet de sécurité côté GitHub pour
     # les dépôts étudiants — un push fait hors de l'agent (interface web, autre
-    # machine sans les hooks) ne peut pas contourner le sas des 3 relecteurs.
-    if: ${{ !github.event.repository.is_template && github.event_name == 'pull_request' }}
+    # machine sans les hooks) ne peut pas contourner le sas des 3 relecteurs,
+    # y compris un push direct sur main (événement push, pas pull_request).
+    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -72,7 +73,8 @@ jobs:
         with:
           # La revue porte sur le HEAD de la branche : on vérifie ce commit-là
           # (par défaut pull_request checkout le commit de fusion, qui
-          # n'aurait jamais été relu).
+          # n'aurait jamais été relu ; sur push, le checkout par défaut vise
+          # déjà le commit poussé).
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Revues code validées sur le commit de la PR
         run: node scripts/check-reviews.mjs

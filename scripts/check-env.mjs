@@ -26,6 +26,21 @@ const missingInExample = [...declared].filter(
 );
 const missingInEnvTs = [...example].filter((k) => !declared.has(k));
 
+// Une variable NEXT_PUBLIC_* est embarquée dans le code envoyé au
+// navigateur : si son NOM ressemble à un secret, c'est une fuite par
+// construction — on la refuse avant même de regarder sa valeur.
+const PUBLIC_SECRET = /^NEXT_PUBLIC_.*(SECRET|TOKEN|PASSWORD|PRIVATE_KEY)/i;
+const publicSecrets = [...declared].filter((k) => PUBLIC_SECRET.test(k));
+if (publicSecrets.length > 0) {
+  console.error(
+    `✗ Variables publiques à nom de secret (embarquées dans le navigateur = fuite) : ${publicSecrets.join(", ")}`,
+  );
+  console.error(
+    "→ Un secret côté client n'existe pas : retire le préfixe NEXT_PUBLIC_ et garde la variable côté serveur, ou renomme-la si elle est vraiment publique.",
+  );
+  process.exit(1);
+}
+
 if (missingInExample.length || missingInEnvTs.length) {
   if (missingInExample.length) {
     console.error(
@@ -37,6 +52,9 @@ if (missingInExample.length || missingInEnvTs.length) {
       `✗ Présentes dans .env.example mais non déclarées dans src/env.ts : ${missingInEnvTs.join(", ")}`,
     );
   }
+  console.error(
+    "→ Répare via le skill /env-vars : il aligne src/env.ts, .env.example et .env.local (jamais de valeur réelle dans .env.example).",
+  );
   process.exit(1);
 }
 

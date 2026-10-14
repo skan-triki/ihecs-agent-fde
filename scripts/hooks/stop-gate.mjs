@@ -4,6 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
+import { turnBasePath, turnFingerprint } from "../lib/diff.mjs";
 import { prodPendingMarker } from "../lib/readiness.mjs";
 
 let input = "";
@@ -35,19 +36,49 @@ if (existsSync(prodPendingMarker())) {
   process.exit(2);
 }
 
-const git = (args) => {
-  const r = spawnSync("git", args, {
+// TOUR « PAROLE SEULE » : le hook UserPromptSubmit a figé l'empreinte de
+// l'arbre au début du tour — si elle est identique, rien n'a été modifié
+// (discussion, explication, questions) et les contrôles lourds n'ont pas à
+// rejouer. Sans marqueur (IDE sans événement UserPromptSubmit) : on continue
+// comme avant, le contrôle complet reste la norme.
+try {
+  if (
+    existsSync(turnBasePath()) &&
+    readFileSync(turnBasePath(), "utf8").trim() === turnFingerprint()
+  ) {
+    process.exit(0);
+  }
+} catch {
+  // Empreinte illisible : on continue vers les contrôles complets.
+}
+
+// Jamais de shell : les arguments partent tels quels (un nom de fichier
+// contenant « & » n'exécute rien). Et jamais de « pnpm » : sous Windows
+// c'est un .cmd que Node refuse sans shell — on invoque les outils du
+// projet par leur vrai binaire JS, portable partout.
+const TOOL_BIN = {
+  eslint: "node_modules/eslint/bin/eslint.js",
+  tsc: "node_modules/typescript/bin/tsc",
+  vitest: "node_modules/vitest/vitest.mjs",
+};
+const tool = (name, args, timeout) =>
+  spawnSync(process.execPath, [TOOL_BIN[name], ...args], {
     encoding: "utf8",
-    shell: process.platform === "win32",
+    timeout,
   });
+
+const git = (args) => {
+  const r = spawnSync("git", args, { encoding: "utf8" });
   return r.status === 0 ? String(r.stdout ?? "") : "";
 };
 
 const changed = git(["status", "--porcelain"])
   .split(/\r?\n/)
   .filter((l) => l)
-  .map((l) => l.slice(3).trim())
-  .filter((p) => /\.(ts|tsx|mts|cts|jsx)$/.test(p));
+  // Renommages : « R  ancien -> nouveau » → on garde la destination ; les
+  // chemins avec espaces sont quotés par git.
+  .map((l) => l.slice(3).split(" -> ").pop().trim().replace(/^"|"$/g, ""))
+  .filter((p) => /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(p));
 
 if (changed.length === 0) process.exit(0);
 
@@ -87,34 +118,20 @@ const hygiene = srcChangedFiles.length
     })
   : { status: 0, stdout: "", stderr: "" };
 const vitest = srcChangedFiles.length
-  ? spawnSync(
-      "pnpm",
-      ["exec", "vitest", "run", "--related", ...srcChangedFiles],
-      {
-        encoding: "utf8",
-        shell: process.platform === "win32",
-        timeout: 120_000,
-      },
-    )
+  ? tool("vitest", ["run", "--related", ...srcChangedFiles], 120_000)
   : { status: 0, stdout: "", stderr: "" };
 
-const eslint = spawnSync(
-  "pnpm",
-  ["exec", "eslint", "--max-warnings=0", ...changed],
-  { encoding: "utf8", shell: process.platform === "win32", timeout: 120_000 },
-);
+const eslint = tool("eslint", ["--max-warnings=0", ...changed], 120_000);
 
-const tsc = spawnSync(
-  "pnpm",
+const tsc = tool(
+  "tsc",
   [
-    "exec",
-    "tsc",
     "--noEmit",
     "--incremental",
     "--tsBuildInfoFile",
     ".next/cache/stop-gate.tsbuildinfo",
   ],
-  { encoding: "utf8", shell: process.platform === "win32", timeout: 180_000 },
+  180_000,
 );
 
 const failed =

@@ -53,6 +53,9 @@ export const prodPendingMarker = () => join(gitDir(), "ihecs-prod-pending");
 // pour reprendre vite après le login de l'étudiant.
 export const loginsCachePath = () => join(gitDir(), "ihecs-logins-cache");
 
+// shell:true uniquement sous Windows et uniquement ici : les commandes
+// sondées sont des CONSTANTES (gh/vercel sont des .cmd que Node ne lance
+// pas sans shell) — aucune entrée utilisateur n'entre dans la chaîne.
 const probeOk = (cmd, args, timeout) =>
   (process.platform === "win32"
     ? spawnSync(`${cmd} ${args.join(" ")}`, {

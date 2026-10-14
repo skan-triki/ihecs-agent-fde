@@ -7,14 +7,22 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
-import { subagentLogActive, subagentRan } from "./subagents.mjs";
+import { launchesCover } from "./subagents.mjs";
+
+// Périmètre relu par les relecteurs `code-review` : le code produit.
+const PRODUCT = ["src/", "public/"];
+
+// Le commit cité par une revue reste valide tant qu'il est un ancêtre de
+// HEAD (ou HEAD lui-même) ET que le code produit n'a pas changé depuis —
+// commit de doc (ex. celui qui ajoute .reviews/) compris : c'est ce qui
+// permet de commiter les verdicts sans invalider les revues qu'ils contiennent.
+const coversCurrentCode = (commit) =>
+  /^[0-9a-f]{7,40}$/i.test(commit) &&
+  spawnSync("git", ["merge-base", "--is-ancestor", commit, "HEAD"]).status ===
+    0 &&
+  spawnSync("git", ["diff", "--quiet", commit, "--", ...PRODUCT]).status === 0;
 
 const CODE_AXES = ["fidelite", "qualite", "ux"];
-
-const headSha = () =>
-  String(
-    spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout ?? "",
-  ).trim();
 
 const field = (raw, name) => {
   const m = new RegExp(
@@ -26,12 +34,14 @@ const field = (raw, name) => {
 
 export const codeReviewErrors = () => {
   const errors = [];
-  if (subagentLogActive() && !subagentRan("code-review")) {
+  // Preuve de lancement : 3 relecteurs (un par axe) doivent avoir été lancés
+  // sur un commit ancêtre depuis lequel src/ et public/ n'ont pas bougé —
+  // une relecture faite puis retouchée ne vaut plus.
+  if (launchesCover("code-review", PRODUCT) === false) {
     errors.push(
-      "Aucun sous-agent `code-review` n'a été lancé — les revues doivent venir de relecteurs indépendants (run_subagent), pas d'un fichier écrit à la main.",
+      "Les 3 sous-agents `code-review` n'ont pas été lancés sur l'état actuel du code — les revues doivent venir de relecteurs indépendants (run_subagent) sur l'état actuel de src/ et public/, pas d'un fichier écrit à la main ni d'une relecture périmée. (Changement d'IDE en cours de projet : supprime `.git/ihecs-subagents.log` pour désactiver cette preuve.)",
     );
   }
-  const sha = headSha();
   for (const axis of CODE_AXES) {
     const path = `.reviews/${axis}.md`;
     if (!existsSync(path)) {
@@ -42,9 +52,9 @@ export const codeReviewErrors = () => {
     }
     const raw = readFileSync(path, "utf8");
     const commit = field(raw, "commit");
-    if (sha && commit !== sha) {
+    if (!coversCurrentCode(commit)) {
       errors.push(
-        `Revue ${path} : elle porte sur un autre commit (${commit.slice(0, 7) || "?"} ≠ ${sha.slice(0, 7)}) — le code a changé depuis, relance ce relecteur.`,
+        `Revue ${path} : elle porte sur un commit (${commit.slice(0, 7) || "?"}) depuis lequel src/ ou public/ a changé — le code relu n'est plus le code présent, relance ce relecteur.`,
       );
       continue;
     }

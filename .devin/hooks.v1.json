@@ -68,6 +68,16 @@
           "type": "command",
           "command": "node scripts/hooks/language-reminder.mjs",
           "timeout": 10
+        },
+        {
+          "type": "command",
+          "command": "node scripts/hooks/turn-base.mjs",
+          "timeout": 10
+        },
+        {
+          "type": "command",
+          "command": "node scripts/hooks/plan-pending.mjs",
+          "timeout": 10
         }
       ]
     }

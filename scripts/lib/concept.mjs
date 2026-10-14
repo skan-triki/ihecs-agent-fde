@@ -5,7 +5,7 @@
 //     d'écrire « Statut : validé » tant que tout n'est pas complet.
 import { existsSync, readFileSync } from "node:fs";
 
-import { subagentLogActive, subagentRan } from "./subagents.mjs";
+import { launchesCover } from "./subagents.mjs";
 
 // Les 12 étapes de l'interview : chaque case cochée atteste que l'étudiant a
 // donné une réponse complète ET challengée pour cette étape (skill /concept).
@@ -183,11 +183,13 @@ export const parseSections = (raw) => {
 };
 
 const bodyOf = (sections, title) => sections[title] ?? "";
-const isExample = (body) => /EXEMPLE\s*—/i.test(body);
+// « EXEMPLE — » (em-dash), « EXEMPLE - » ou « EXEMPLE : » marquent le
+// contenu du template à remplacer.
+const isExample = (body) => /EXEMPLE\s*[—\-:]/i.test(body);
 const realBody = (body) =>
   body
     .split(/\r?\n/)
-    .filter((l) => !/EXEMPLE\s*—/i.test(l))
+    .filter((l) => !/EXEMPLE\s*[—\-:]/i.test(l))
     .join("\n")
     .trim();
 const countItems = (body) =>
@@ -286,9 +288,18 @@ export const conceptTextErrors = (raw, { skipStatut = false } = {}) => {
 // verdict écrit à la main ne compte pas.
 export const reviewFileErrors = () => {
   const errors = [];
-  if (subagentLogActive() && !subagentRan("concept-review")) {
+  // Preuve de lancement : les 3 axes doivent avoir été relus par des
+  // sous-agents sur un commit ancêtre depuis lequel la SUBSTANCE du concept
+  // (MVP.md + JOURNAL.md) n'a pas bougé — les verdicts eux-mêmes vivent dans
+  // .concept/reviews/ et ne doivent pas invalider leur propre couverture.
+  if (
+    launchesCover("concept-review", [
+      ".concept/MVP.md",
+      ".concept/JOURNAL.md",
+    ]) === false
+  ) {
     errors.push(
-      "Aucun sous-agent `concept-review` n'a été lancé — les revues qualité doivent venir de relecteurs indépendants (run_subagent), pas d'un fichier écrit à la main.",
+      "Les 3 sous-agents `concept-review` n'ont pas été lancés sur l'état actuel du concept — les revues qualité doivent venir de relecteurs indépendants (run_subagent) sur le MVP.md actuel, pas d'un fichier écrit à la main ni d'une relecture périmée. (Changement d'IDE en cours de projet : supprime `.git/ihecs-subagents.log` pour désactiver cette preuve.)",
     );
   }
   const verdict = (path) => {
@@ -338,14 +349,27 @@ export const journalFileErrors = () => {
   }
   const sections = parseSections(readFileSync(path, "utf8"));
   const errors = [];
+  // Chaque note exige les 3 lignes du journal de bord. « aucune » est une
+  // réponse acceptable pour les deux dernières (honni soit le remplissage).
+  const line = (body, label, min) =>
+    new RegExp(
+      `${label}[^\\S\\r\\n]*:[^\\S\\r\\n]*\\S[^\\r\\n]{${min},}`,
+      "i",
+    ).test(body);
   for (let i = 1; i <= ETAPES.length; i++) {
     const title = Object.keys(sections).find((t) =>
       new RegExp(`^Étape\\s+${i}\\b`).test(t),
     );
     const body = title ? sections[title] : "";
-    if (!/décision[^\S\r\n]*:[^\S\r\n]*\S[^\r\n]{14,}/i.test(body)) {
+    const missing = [
+      !line(body, "décision", 14) && "« - Décision : … »",
+      !line(body, "objection tranchée", 4) && "« - Objection tranchée : … »",
+      !line(body, "question restée ouverte", 4) &&
+        "« - Question restée ouverte : … »",
+    ].filter(Boolean);
+    if (missing.length > 0) {
       errors.push(
-        `Journal : note de l'étape ${i} manquante ou sans « - Décision : … » réelle dans ${path}.`,
+        `Journal : note de l'étape ${i} incomplète dans ${path} — ${missing.join(", ")} attendue(s) (« aucune » est accepté pour les deux dernières).`,
       );
     }
   }

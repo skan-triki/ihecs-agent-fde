@@ -72,7 +72,12 @@ if (!existsSync(".concept/MVP.md")) {
 if (errors.length > 0) {
   if (!quiet) {
     console.error("✗ Concept MVP non validé :");
-    for (const e of errors) console.error(`  - ${e}`);
+    // Une fiche vierge produit ~40 puces : on borne à 10 — la première
+    // étape incomplète suffit pour reprendre.
+    for (const e of errors.slice(0, 10)) console.error(`  - ${e}`);
+    if (errors.length > 10) {
+      console.error(`  - … et ${errors.length - 10} autre(s) manque(s).`);
+    }
     console.error(
       "\nRappel : aucun code applicatif (src/) n'est accepté tant que le concept n'est pas validé. Utilise le skill /concept.",
     );
