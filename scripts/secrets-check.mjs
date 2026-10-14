@@ -3,7 +3,7 @@
 // suivis. Sans git (build Vercel) : fichiers présents sur le disque.
 // Code 0 seulement si tout est propre.
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const SECRET =
@@ -54,7 +54,15 @@ for (const f of files) {
   });
 }
 
-if (envFiles.length === 0 && leaks.length === 0) {
+// Filet de sécurité : .env.local DOIT être ignoré par git — sinon le
+// prochain `git add -A` le versionne avec les vraies valeurs.
+let envLocalExposed = false;
+if (ls.status === 0 && existsSync(".env.local")) {
+  envLocalExposed =
+    spawnSync("git", ["check-ignore", "-q", ".env.local"]).status !== 0;
+}
+
+if (envFiles.length === 0 && leaks.length === 0 && !envLocalExposed) {
   console.log(
     `✓ Secrets : aucun fichier .env ${ls.status === 0 ? "suivi" : "envoyé"}, aucun secret détecté.`,
   );
@@ -62,6 +70,11 @@ if (envFiles.length === 0 && leaks.length === 0) {
 }
 for (const f of envFiles) console.error(`✗ fichier de secrets présent : ${f}`);
 for (const l of leaks) console.error(`✗ secret probable : ${l}`);
+if (envLocalExposed) {
+  console.error(
+    "✗ .env.local n'est pas ignoré par git — ajoute-le à .gitignore AVANT tout commit (il contient de vrais secrets).",
+  );
+}
 console.error(
   "→ Retire le fichier .env du suivi git (`git rm --cached <fichier>` puis commit) ou la ligne fautive — ne commit jamais une vraie valeur.",
 );

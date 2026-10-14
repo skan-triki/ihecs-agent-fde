@@ -4,6 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
+import { turnBasePath, turnFingerprint } from "../lib/diff.mjs";
 import { prodPendingMarker } from "../lib/readiness.mjs";
 
 let input = "";
@@ -33,6 +34,22 @@ if (existsSync(prodPendingMarker())) {
     }),
   );
   process.exit(2);
+}
+
+// TOUR « PAROLE SEULE » : le hook UserPromptSubmit a figé l'empreinte de
+// l'arbre au début du tour — si elle est identique, rien n'a été modifié
+// (discussion, explication, questions) et les contrôles lourds n'ont pas à
+// rejouer. Sans marqueur (IDE sans événement UserPromptSubmit) : on continue
+// comme avant, le contrôle complet reste la norme.
+try {
+  if (
+    existsSync(turnBasePath()) &&
+    readFileSync(turnBasePath(), "utf8").trim() === turnFingerprint()
+  ) {
+    process.exit(0);
+  }
+} catch {
+  // Empreinte illisible : on continue vers les contrôles complets.
 }
 
 // Jamais de shell : les arguments partent tels quels (un nom de fichier

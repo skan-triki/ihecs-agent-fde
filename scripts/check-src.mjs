@@ -1,14 +1,10 @@
-// Hygiène mécanique de src/ — `pnpm src:check`, inclus dans `pnpm check`,
-// donc vérifié au commit, au push, en CI et au build Vercel.
-//
-//  1. Fichier vide ou quasi-vide (commentaires seuls, `export {}`) interdit.
-//  2. Tout module de src/server/ doit porter `import "server-only"` : un
-//     import depuis un composant client casse alors le build (frontière
-//     serveur/client verrouillée par Next.js, pas par convention).
-//  3. Tout module de logique pure src/lib/**/*.ts exige son test voisin
-//     X.test.ts — une fonction sans test est une fonction non prouvée.
-//     Exemptés : les fichiers de types (*.d.ts) et les barils (index.ts)
-//     qui ne contiennent pas de logique propre.
+// Hygiène mécanique de src/ — lancé par pnpm src:check, inclus dans la
+// chaîne pnpm check, donc vérifié au commit, au push, en CI et au build.
+// Règles : pas de fichier vide ou sans contenu réel ; les modules serveur
+// portent le marqueur server-only (un import côté client casse le build) ;
+// chaque module de logique pure a son test voisin — un test est une preuve.
+// Les noms de fichiers restent en kebab-case et aucun marqueur de travail
+// remis à plus tard (TODO, FIXME…) ne doit figurer dans le code livré.
 import {
   existsSync,
   readdirSync,
@@ -21,6 +17,12 @@ import { join, relative } from "node:path";
 const CODE_EXT = /\.(ts|tsx|mts|cts|js|jsx|css)$/;
 const TEST_FILE = /\.test\.(ts|tsx)$/;
 const EMPTY_STUB = /^(export\s*\{\s*\}|export\s+default\s*\{\s*\})\s*;?$/;
+// Noms de fichiers : kebab-case partout (segments séparés par - ou .).
+// Des noms réguliers rendent les imports prévisibles et le code navigable.
+const KEBAB = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
+// Marqueurs de travail remis à plus tard : un TODO livré est une dette
+// déguisée — on corrige ou on supprime, on ne reporte pas.
+const MARKERS = /\b(?:TODO|FIXME|HACK|XXX)\b/;
 
 // Garde anti-boucle : un lien symbolique qui boucle ne doit pas faire
 // tourner le parcours à l'infini.
@@ -44,7 +46,24 @@ const errors = [];
 for (const file of walk("src")) {
   const rel = relative(".", file).replaceAll("\\", "/");
   if (!CODE_EXT.test(rel)) continue;
-  const body = stripComments(readFileSync(file, "utf8")).trim();
+  const raw = readFileSync(file, "utf8");
+  const body = stripComments(raw).trim();
+
+  const stem = rel
+    .split("/")
+    .pop()
+    .replace(/\.[^.]+$/, "");
+  if (!KEBAB.test(stem)) {
+    errors.push(
+      `${rel} : nom de fichier non kebab-case — renomme-le en minuscules avec tirets (ex. ma-page.tsx).`,
+    );
+  }
+  // Marqueurs cherchés sur le texte BRUT : ils vivent dans les commentaires.
+  if (MARKERS.test(raw)) {
+    errors.push(
+      `${rel} : marqueur TODO/FIXME/HACK/XXX interdit — termine le travail ou supprime la ligne, ne remets pas à plus tard.`,
+    );
+  }
 
   if (body === "" || EMPTY_STUB.test(body)) {
     errors.push(

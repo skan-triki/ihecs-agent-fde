@@ -5,11 +5,7 @@
 //     d'écrire « Statut : validé » tant que tout n'est pas complet.
 import { existsSync, readFileSync } from "node:fs";
 
-import {
-  headSha,
-  subagentLaunchesAt,
-  subagentLogActive,
-} from "./subagents.mjs";
+import { launchesCover } from "./subagents.mjs";
 
 // Les 12 étapes de l'interview : chaque case cochée atteste que l'étudiant a
 // donné une réponse complète ET challengée pour cette étape (skill /concept).
@@ -293,13 +289,17 @@ export const conceptTextErrors = (raw, { skipStatut = false } = {}) => {
 export const reviewFileErrors = () => {
   const errors = [];
   // Preuve de lancement : les 3 axes doivent avoir été relus par des
-  // sous-agents lancés SUR le commit courant — pas un lancement ancien.
+  // sous-agents sur un commit ancêtre depuis lequel la SUBSTANCE du concept
+  // (MVP.md + JOURNAL.md) n'a pas bougé — les verdicts eux-mêmes vivent dans
+  // .concept/reviews/ et ne doivent pas invalider leur propre couverture.
   if (
-    subagentLogActive() &&
-    subagentLaunchesAt("concept-review", headSha()) < 3
+    launchesCover("concept-review", [
+      ".concept/MVP.md",
+      ".concept/JOURNAL.md",
+    ]) === false
   ) {
     errors.push(
-      "Les 3 sous-agents `concept-review` n'ont pas été lancés sur l'état actuel — les revues qualité doivent venir de relecteurs indépendants (run_subagent), pas d'un fichier écrit à la main ni d'une relecture d'un ancien commit. (Changement d'IDE en cours de projet : supprime `.git/ihecs-subagents.log` pour désactiver cette preuve.)",
+      "Les 3 sous-agents `concept-review` n'ont pas été lancés sur l'état actuel du concept — les revues qualité doivent venir de relecteurs indépendants (run_subagent) sur le MVP.md actuel, pas d'un fichier écrit à la main ni d'une relecture périmée. (Changement d'IDE en cours de projet : supprime `.git/ihecs-subagents.log` pour désactiver cette preuve.)",
     );
   }
   const verdict = (path) => {

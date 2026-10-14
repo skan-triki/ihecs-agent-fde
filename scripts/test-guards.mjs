@@ -4,6 +4,7 @@
 // (`pnpm guards:test`) : une régression des garde-fous casse la CI.
 import { spawnSync } from "node:child_process";
 import {
+  appendFileSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -15,8 +16,10 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { journalFileErrors } from "./lib/concept.mjs";
+import { planPendingPath, turnBasePath, turnFingerprint } from "./lib/diff.mjs";
 import { loginsCachePath, prodPendingMarker } from "./lib/readiness.mjs";
 import { codeReviewErrors } from "./lib/review.mjs";
+import { launchesCover } from "./lib/subagents.mjs";
 
 const env = { ...process.env };
 delete env.IHECS_TEACHER_BYPASS;
@@ -154,6 +157,9 @@ const MUST_PASS_EXEC = [
   "pnpm test",
   "pnpm env:init",
   "pnpm routes:check / /about",
+  "pnpm design:check",
+  'pnpm plan:ack "créer la page profil avec son formulaire"',
+  'node scripts/plan-ack.mjs "créer la page profil avec son formulaire"',
   "pnpm start --port 3123",
   "pnpm install",
   "pnpm install --frozen-lockfile",
@@ -449,6 +455,70 @@ for (const fmt of ["cli", "cascade"]) {
     "fin de tour bloquée (production non vérifiée)",
   );
   rmSync(marker, { force: true });
+
+  // PORTE DU PLAN : tant que le marqueur armé par le hook UserPromptSubmit
+  // existe, toute écriture dans src/ ou public/ est refusée — l'agent doit
+  // d'abord énoncer son plan via `pnpm plan:ack`.
+  console.log(`\n=== ${fmt} : porte du plan ===`);
+  const planPayload = (p, s) =>
+    fmt === "cli"
+      ? { tool_name: "edit", tool_input: { file_path: abs(p), new_string: s } }
+      : {
+          agent_action_name: "pre_write_code",
+          tool_info: {
+            file_path: abs(p),
+            edits: [{ old_string: "", new_string: s }],
+          },
+        };
+  const editOut = (p, s) => {
+    const r = spawnSync("node", ["scripts/hooks/guard-edit.mjs"], {
+      input: JSON.stringify(planPayload(p, s)),
+      encoding: "utf8",
+      env,
+      timeout: 60_000,
+    });
+    return {
+      status: r.status,
+      out: `${r.stdout ?? ""}${r.stderr ?? ""}`,
+    };
+  };
+  writeFileSync(planPendingPath(), `${new Date().toISOString()}\n`);
+  const blockedSrc = editOut("src/page-plan.ts", "x");
+  report(
+    blockedSrc.status === 2 && /plan:ack/.test(blockedSrc.out),
+    "écriture src/ refusée tant que le plan n'est pas énoncé",
+  );
+  const blockedPublic = editOut("public/logo.svg", "x");
+  report(
+    blockedPublic.status === 2 && /plan:ack/.test(blockedPublic.out),
+    "écriture public/ refusée tant que le plan n'est pas énoncé",
+  );
+  report(
+    editOut("README.md", "x").status === 0,
+    "hors src/public/ : la porte du plan ne bloque pas",
+  );
+  // Un plan trop court est refusé ; un vrai plan désarme le marqueur.
+  const shortAck = spawnSync("node", ["scripts/plan-ack.mjs", "ok"], {
+    encoding: "utf8",
+    env,
+  });
+  report(
+    shortAck.status === 1 && existsSync(planPendingPath()),
+    "plan:ack trop court refusé, marqueur conservé",
+  );
+  const okAck = spawnSync(
+    "node",
+    [
+      "scripts/plan-ack.mjs",
+      "créer la page profil avec un formulaire puis la Server Action",
+    ],
+    { encoding: "utf8", env },
+  );
+  report(
+    okAck.status === 0 && !existsSync(planPendingPath()),
+    "plan:ack valide désarme la porte",
+  );
+  rmSync(planPendingPath(), { force: true });
 }
 
 // Libs partagées — verrous de contenu (indépendants du format de hook).
@@ -480,8 +550,8 @@ report(
 );
 writeFileSync(".reviews/ux.md", reviewFile("validé", "deadbeef"));
 report(
-  codeReviewErrors().some((e) => /autre commit/.test(e)),
-  "revue portant sur un autre commit refusée",
+  codeReviewErrors().some((e) => /porte sur un commit/.test(e)),
+  "revue portant sur un commit hors lignée refusée",
 );
 
 // Preuve de lancement : les 3 sous-agents `code-review` doivent avoir été
@@ -520,8 +590,50 @@ report(
   codeReviewErrors().length === 0,
   "3 lancements sur HEAD + revues validées acceptés",
 );
+
+// Couverture liée au périmètre relu : ≥3 lancements sur un commit ancêtre
+// valent tant que src/ et public/ n'ont pas bougé depuis — mais une retouche
+// du code invalide aussitôt relectures et preuve de lancement.
+report(
+  launchesCover("code-review", ["src/", "public/"]) === true,
+  "launchesCover : 3 lancements sur HEAD couvrent l'état propre",
+);
+const pagePath = "src/app/page.tsx";
+const savedPage = readFileSync(pagePath, "utf8");
+writeFileSync(pagePath, `${savedPage}\n// retouche\n`);
+report(
+  launchesCover("code-review", ["src/", "public/"]) === false,
+  "launchesCover : une retouche de src/ invalide la couverture",
+);
+report(
+  codeReviewErrors().some((e) => /a changé/.test(e)),
+  "revue citant HEAD périmée après retouche du code",
+);
+writeFileSync(pagePath, savedPage);
+report(
+  codeReviewErrors().length === 0,
+  "couverture et revues retrouvées après restauration",
+);
 if (savedLog === null) rmSync(subLog, { force: true });
 else writeFileSync(subLog, savedLog);
+
+// EMPREINTE DE TOUR : .git/ihecs-turn-base figé au message de l'étudiant —
+// si rien n'a bougé depuis, la fin de tour est libre (« parole seule ») ;
+// si quelque chose a changé, les contrôles rejouent et attrapent les fautes.
+const savedPageForStop = readFileSync(pagePath, "utf8");
+appendFileSync(pagePath, "\nvar broken = 1;\n");
+writeFileSync(turnBasePath(), `${turnFingerprint()}\n`);
+report(
+  runHook("scripts/hooks/stop-gate.mjs", { stop_hook_active: false }) === 0,
+  "empreinte inchangée : fin de tour acceptée même avec un fichier fautif",
+);
+appendFileSync(pagePath, " ");
+report(
+  runHook("scripts/hooks/stop-gate.mjs", { stop_hook_active: false }) === 2,
+  "empreinte périmée : les contrôles rejouent et bloquent le fichier fautif",
+);
+writeFileSync(pagePath, savedPageForStop);
+rmSync(turnBasePath(), { force: true });
 
 rmSync(".reviews", { recursive: true, force: true });
 
@@ -560,7 +672,93 @@ if (!existsSync("src/server")) {
 writeFileSync("src/tmp-guard-empty.ts", "// TODO\n");
 report(srcCheck() === 1, "fichier vide de contenu refusé");
 rmSync("src/tmp-guard-empty.ts", { force: true });
+// Nommage : kebab-case exigé ; marqueurs « à faire plus tard » refusés.
+writeFileSync("src/TmpGuardName.ts", "export const z = 1;\n");
+report(srcCheck() === 1, "nom de fichier non kebab-case refusé");
+rmSync("src/TmpGuardName.ts", { force: true });
+writeFileSync("src/tmp-marker.ts", "export const z = 1; // FIXME nettoyer\n");
+report(srcCheck() === 1, "marqueur FIXME dans src/ refusé");
+rmSync("src/tmp-marker.ts", { force: true });
 report(srcCheck() === 0, "src/ propre accepté");
+
+// design:check — parité des tokens clair/sombre du design system.
+console.log("\n=== libs : design system ===");
+const design = (f) =>
+  spawnSync("node", ["scripts/check-design.mjs", f], { encoding: "utf8" })
+    .status;
+report(design("src/design-system/globals.css") === 0, "globals.css conforme");
+writeFileSync(
+  "tmp-design-fixture.css",
+  ":root{--a:1;--b:2}\n.dark{--a:1}\n@theme inline{--color-a:var(--a);--color-b:var(--b)}\n",
+);
+report(
+  design("tmp-design-fixture.css") === 1,
+  "token manquant en thème sombre refusé",
+);
+writeFileSync(
+  "tmp-design-fixture.css",
+  ":root{--a:1}\n.dark{--a:1}\n@theme inline{--color-x:var(--orphelin)}\n",
+);
+report(
+  design("tmp-design-fixture.css") === 1,
+  "référence @theme orpheline refusée",
+);
+writeFileSync(
+  "tmp-design-fixture.css",
+  ":root{--a:1}\n.dark{--a:1}\n@theme inline{--color-a:var(--a)}\n",
+);
+report(design("tmp-design-fixture.css") === 0, "fichier cohérent accepté");
+rmSync("tmp-design-fixture.css", { force: true });
+
+// Méta-tests ESLint : les gardes critiques doivent SE DÉCLENCHER sur du code
+// fautif réel — une règle cassée en silence passerait sinon inaperçue.
+console.log("\n=== libs : les gardes ESLint se déclenchent ===");
+const fixtureBad = "src/app/guard-fixture.tsx";
+const fixtureOk = "src/app/guard-fixture-ok.tsx";
+try {
+  writeFileSync(
+    fixtureBad,
+    [
+      'import clsx from "clsx";',
+      'import { absent } from "./module-inexistant";',
+      'import paquetFantome from "paquet-fantome-xyz";',
+      "",
+      "export function GuardFixture() {",
+      '  return <div className={clsx("bg-red-500")}>{String(process.env.X)}</div>;',
+      "}",
+      "// eslint-disable-next-line",
+      "const unused = absent + paquetFantome;",
+      "export const out = unused;",
+      "",
+    ].join("\n"),
+  );
+  writeFileSync(
+    fixtureOk,
+    'export function GuardFixtureOk() {\n  return <div className="bg-background">ok</div>;\n}\n',
+  );
+  const { ESLint } = await import("eslint");
+  const eslint = new ESLint({ cwd: ROOT });
+  const [badRes, okRes] = await eslint.lintFiles([fixtureBad, fixtureOk]);
+  const badIds = new Set(badRes.messages.map((m) => m.ruleId));
+  const okIds = new Set(okRes.messages.map((m) => m.ruleId));
+  for (const [rule, label] of [
+    ["no-restricted-imports", "import interdit (clsx)"],
+    ["llm-core/no-hallucinated-local-imports", "import local halluciné"],
+    ["llm-core/no-hallucinated-package-imports", "paquet halluciné"],
+    ["no-restricted-properties", "process.env direct"],
+    ["better-tailwindcss/no-restricted-classes", "couleur brute"],
+    [
+      "@eslint-community/eslint-comments/require-description",
+      "eslint-disable sans justification",
+    ],
+  ]) {
+    report(badIds.has(rule), `règle ${rule} déclenchée (${label})`);
+    report(!okIds.has(rule), `fichier propre épargné par ${rule}`);
+  }
+} finally {
+  rmSync(fixtureBad, { force: true });
+  rmSync(fixtureOk, { force: true });
+}
 
 if (createdEnvLocal) rmSync(".env.local", { force: true });
 console.log(`\n${fails === 0 ? "TOUT EST CONFORME" : `${fails} ÉCHEC(S)`}`);

@@ -14,6 +14,7 @@ import {
   parseSections,
   reviewFileErrors,
 } from "../lib/concept.mjs";
+import { planPendingPath } from "../lib/diff.mjs";
 import {
   devMissing,
   loginsMissing,
@@ -268,6 +269,17 @@ if (/^\.concept\/MVP\.md$/i.test(relPath)) {
 if (/^(src|public)\//.test(relPath) && existsSync(prodPendingMarker())) {
   block(
     "La dernière livraison n'a pas été vérifiée en production. Lance `pnpm prod:check` avant de reprendre le développement.",
+  );
+}
+
+// PORTE DU PLAN : à chaque message de l'étudiant, un marqueur est armé par le
+// hook UserPromptSubmit. Tant qu'il existe, aucune écriture dans src/ ni
+// public/ — l'agent doit d'abord énoncer ce qu'il va faire (ou les questions
+// à poser) via `pnpm plan:ack "…"`. Discipline « réfléchir avant de coder »,
+// vérifiée mécaniquement plutôt que laissée à la bonne volonté.
+if (/^(src|public)\//.test(relPath) && existsSync(planPendingPath())) {
+  block(
+    'Porte du plan : avant de toucher au code, énonce en une phrase ce que tu vas faire — ou les questions à poser à l\'étudiant — via `pnpm plan:ack "<plan, ≥20 caractères>"`. Écrire sans plan ni question est refusé.',
   );
 }
 

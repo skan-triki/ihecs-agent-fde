@@ -8,6 +8,7 @@ import prettier from "eslint-config-prettier/flat";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 import importX from "eslint-plugin-import-x";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import llmCore from "eslint-plugin-llm-core";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
@@ -145,9 +146,18 @@ const eslintConfig = defineConfig([
 
       "simple-import-sort/imports": "error",
       "simple-import-sort/exports": "error",
+
+      // Pièges typiques du code généré par IA : imports vers des modules ou
+      // des exports qui n'existent pas, eval/new Function, code commenté
+      // laissé « au cas où ». Mécanique, pas convention.
+      "llm-core/no-hallucinated-local-imports": "error",
+      "llm-core/no-hallucinated-package-imports": "error",
+      "llm-core/no-dynamic-code-execution": "error",
+      "llm-core/no-commented-out-code": "error",
     },
     plugins: {
       "simple-import-sort": simpleImportSort,
+      "llm-core": llmCore,
     },
   },
 
