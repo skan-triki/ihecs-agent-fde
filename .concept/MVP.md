@@ -5,14 +5,16 @@
 
 > C'est la carte d'identité de ton MVP. **Ton agent IA ne peut pas coder tant que
 > ce fichier n'est pas « Statut : validé »** (verrou automatique). Définis-le avec
-> le skill `/concept` : ton agent te pose UNE question à la fois, **challenge ta
-> réponse** (il joue l'avocat du diable), remplit la section avec tes mots, écrit
-> l'objection tranchée en `> Challenge :`, note l'étape dans
-> `.concept/JOURNAL.md`, coche l'étape dans « Progression », puis passe à la
+> le skill `/concept` : ton agent te pose UNE question à la fois (un seul sujet),
+> **approfondit avec toi** quand c'est utile (clarifier un mot, examiner une
+> preuve, explorer une conséquence ou une tension — jamais pour te piéger),
+> remplit la section avec tes mots, note cet échange en `> Approfondissement :`,
+> consigne l'étape dans `.concept/JOURNAL.md` (décision, raison, approfondissement,
+> incertitude restante), coche l'étape dans « Progression », puis passe à la
 > suivante. **Aucune étape ne peut être sautée** : le verrou ne se lève que si
 > les 12 étapes sont cochées, chaque section remplie avec TON contenu, chaque
-> `> Challenge :` écrit ET le journal rempli. Des relecteurs automatiques
-> notent aussi la qualité de l'interview à mi-parcours et avant la validation
+> `> Approfondissement :` écrit ET le journal rempli. Des relecteurs automatiques
+> évaluent aussi la qualité de l'interview à mi-parcours et avant la validation
 > — leurs verdicts doivent être « validé » dans `.concept/reviews/`. À la
 > validation, `pnpm concept:check` compile automatiquement `.concept/SYNTHESE.md`
 > (résumé d'une page). Le contenu ci-dessous est un EXEMPLE de remplissage —
@@ -38,24 +40,27 @@
 EXEMPLE — « Un site qui aide les étudiants à réviser en transformant leurs
 cours en quiz automatiques. »
 
-> Challenge : EXEMPLE — « ChatGPT fait déjà des quiz, pourquoi un site dédié ? »
-> → réponse : l'étudiant colle son cours, zéro prompt à rédiger.
+> Approfondissement : EXEMPLE — « qu'as-tu observé qui t'a donné cette idée ? »
+> → l'étudiant raconte sa dernière révision : il relisait sans savoir s'il
+> avait compris.
 
 ## 2. Problème utilisateur
 
 EXEMPLE — « Les étudiants relisent passivement leurs cours et ne savent pas
 s'ils ont vraiment mémorisé. Résultat : stress et mauvaises notes. »
 
-> Challenge : EXEMPLE — « Ils s'en plaignent, mais changeraient-ils vraiment
-> d'habitude ? » → à vérifier en faisant tester 3 étudiants dès le début.
+> Approfondissement : EXEMPLE — « qu'as-tu observé qui te fait penser que
+> d'autres ont ce problème ? » → hypothèse notée comme telle : à vérifier en
+> faisant tester 3 étudiants dès le début.
 
 ## 3. Utilisateur cible
 
 EXEMPLE — « Étudiants de l'IHECS en révision d'examen, à l'aise avec le web,
 peu de temps. »
 
-> Challenge : EXEMPLE — « Pourquoi pas tous les étudiants ? » → cible resserrée
-> : l'IHECS d'abord, le reste après si ça marche.
+> Approfondissement : EXEMPLE — « pourquoi eux plutôt que tous les
+> étudiants ? » → cible resserrée : l'IHECS d'abord, le reste après si ça
+> marche.
 
 ## 4. Parcours clé (3 à 5 étapes)
 
@@ -66,13 +71,15 @@ EXEMPLE —
 3. L'étudiant répond et voit son score.
 4. Le site propose de retravailler les questions ratées.
 
-> Challenge : EXEMPLE — « L'étape 1 suppose qu'il a un résumé — et s'il n'en a
-> pas ? » → le site accepte aussi des notes brutes, sinon message clair.
+> Approfondissement : EXEMPLE — « comment un nouvel arrivant comprend-il
+> l'étape 1 s'il n'a pas de résumé sous la main ? » → le site accepte aussi
+> des notes brutes, sinon message clair.
 
 ## 5. Périmètre du MVP
 
-> Challenge : EXEMPLE — « Sans comptes, l'étudiant perd tout à chaque visite »
-> → assumé : le MVP teste la génération du quiz, pas la fidélité.
+> Approfondissement : EXEMPLE — « que se passerait-il sans comptes
+> utilisateurs ? » → l'étudiant perd tout à chaque visite ; assumé : le MVP
+> teste la génération du quiz, pas la fidélité.
 
 ### Fonctionnalités indispensables (max 3)
 
@@ -97,13 +104,15 @@ EXEMPLE —
 - `/` — accueil : décrire l'objectif + champ pour coller le cours
 - `/quiz` — le quiz généré et le score
 
-> Challenge : EXEMPLE — « Une seule page ne suffirait pas ? » → non : mélanger
-> la saisie et le quiz rendrait l'écran confus.
+> Approfondissement : EXEMPLE — « que se passerait-il si tout tenait sur une
+> seule page ? » → essayé en parlant : saisie et quiz mélangés rendraient
+> l'écran confus, tranche l'étudiant.
 
 ## 7. Expérience utilisateur (UX)
 
-> Challenge : EXEMPLE — « 30 secondes d'attente, l'utilisateur part » → on
-> montre une progression et une astuce de révision pendant la génération.
+> Approfondissement : EXEMPLE — « que se passerait-il si la génération prenait
+> 30 secondes ? » → on montre une progression et une astuce de révision
+> pendant l'attente.
 
 ### Premier contact (ce que l'utilisateur voit en arrivant)
 
@@ -129,8 +138,9 @@ EXEMPLE — « Modèle : via Vercel AI Gateway. L'utilisateur fournit le texte ;
 l'IA doit renvoyer strictement du JSON (5 questions, 4 choix, bonne réponse).
 Pas de base de données dans ce MVP. »
 
-> Challenge : EXEMPLE — « Et si l'IA invente une mauvaise réponse ? » → chaque
-> question affiche le passage du cours dont elle est tirée.
+> Approfondissement : EXEMPLE — « comment vérifieras-tu que l'IA n'invente pas
+> une mauvaise réponse ? » → chaque question affiche le passage du cours dont
+> elle est tirée.
 
 ## 9. Critères de succès (comment on SAIT que le MVP marche)
 
@@ -139,21 +149,24 @@ EXEMPLE —
 - Un étudiant peut créer un quiz en moins de 2 minutes, sans aide
 - Le quiz généré est jouable et le score s'affiche
 
-> Challenge : EXEMPLE — « "Moins de 2 minutes", mesuré comment ? » → on
-> chronomètre 3 vrais étudiants sur un parcours complet.
+> Approfondissement : EXEMPLE — « quelle observation te ferait dire que ça ne
+> marche pas ? » → si personne ne termine un quiz entier, l'idée est à
+> revoir.
 
 ## 10. Risques & hypothèses à tester
 
 EXEMPLE — « L'IA renvoie parfois du JSON invalide → à tester tôt avec un vrai
-cours. Hypothèse : les étudiants veulent des quiz plus que des flashcards. »
+cours. Hypothèse ouverte : les étudiants veulent des quiz plus que des
+flashcards → à vérifier en proposant les deux formats à 3 camarades. »
 
-> Challenge : EXEMPLE — « Et si le vrai risque est ailleurs : personne ne veut
-> de quiz ? » → c'est l'hypothèse n°1, testée par les critères de succès.
+> Approfondissement : EXEMPLE — « comment pourrais-tu vérifier que les quiz
+> sont préférés aux flashcards ? » → mini-test des deux formats, laissé ouvert
+> en attendant.
 
 ## 11. Stress-test (points challengés)
 
-Les objections les plus dures, posées à la fin de l'interview, et comment elles
-ont été tranchées.
+Les tensions les plus dures, examinées à la fin de l'interview, et comment
+l'étudiant les a tranchées.
 
 EXEMPLE —
 
@@ -164,7 +177,9 @@ EXEMPLE —
 
 ## 12. Reformulation (test Feynman)
 
-EXEMPLE — l'étudiant ré-explique son projet en 3 phrases, de mémoire :
+EXEMPLE — l'étudiant ré-explique son projet en quelques phrases, de mémoire :
 « Mon projet aide les étudiants qui révisent à vérifier qu'ils ont vraiment
 mémorisé. Le problème : ils relisent passivement. Le site transforme leur
-cours en quiz en 2 minutes et montre le score. »
+cours en quiz en 2 minutes et montre le score. Ce qui reste incertain :
+que les étudiants préfèrent ça aux flashcards — je le vérifie avec trois
+camarades. »

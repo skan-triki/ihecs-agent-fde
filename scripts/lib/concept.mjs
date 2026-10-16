@@ -1,14 +1,14 @@
 // Analyse et validation du concept MVP (.concept/MVP.md) — logique PARTAGÉE :
 //   - scripts/check-concept.mjs : verdict complet (texte + revues sur disque) ;
 //   - scripts/hooks/guard-edit.mjs : verrou À L'ÉCRITURE — impossible de cocher
-//     une étape dont la section est vide ou non challengée, et impossible
-//     d'écrire « Statut : validé » tant que tout n'est pas complet.
+//     une étape dont la section est vide ou sans trace d'approfondissement, et
+//     impossible d'écrire « Statut : validé » tant que tout n'est pas complet.
 import { existsSync, readFileSync } from "node:fs";
 
 import { launchesCover } from "./subagents.mjs";
 
 // Les 12 étapes de l'interview : chaque case cochée atteste que l'étudiant a
-// donné une réponse complète ET challengée pour cette étape (skill /concept).
+// donné une réponse complète ET approfondie pour cette étape (skill /concept).
 const ETAPES = [
   "Étape 1 — Pitch",
   "Étape 2 — Problème utilisateur",
@@ -25,7 +25,7 @@ const ETAPES = [
 ];
 
 // Par étape : les sections attendues (titre exact + règle de contenu + aide),
-// et la section « ## » qui doit porter la ligne « > Challenge : ».
+// et la section « ## » qui doit porter la ligne « > Approfondissement : ».
 export const ETAPE_CHECKS = [
   {
     etape: "Étape 1 — Pitch",
@@ -36,21 +36,21 @@ export const ETAPE_CHECKS = [
         "ton pitch en une phrase claire",
       ],
     ],
-    challenge: "1. Pitch (une phrase)",
+    deepening: "1. Pitch (une phrase)",
   },
   {
     etape: "Étape 2 — Problème utilisateur",
     sections: [
       ["2. Problème utilisateur", { chars: 20 }, "le problème que tu résous"],
     ],
-    challenge: "2. Problème utilisateur",
+    deepening: "2. Problème utilisateur",
   },
   {
     etape: "Étape 3 — Utilisateur cible",
     sections: [
       ["3. Utilisateur cible", { chars: 15 }, "pour qui tu le construis"],
     ],
-    challenge: "3. Utilisateur cible",
+    deepening: "3. Utilisateur cible",
   },
   {
     etape: "Étape 4 — Parcours clé",
@@ -61,7 +61,7 @@ export const ETAPE_CHECKS = [
         "au moins 3 étapes numérotées du parcours de l'utilisateur",
       ],
     ],
-    challenge: "4. Parcours clé (3 à 5 étapes)",
+    deepening: "4. Parcours clé (3 à 5 étapes)",
   },
   {
     etape: "Étape 5 — Périmètre",
@@ -77,7 +77,7 @@ export const ETAPE_CHECKS = [
         "au moins 1 chose que tu ne fais PAS (hors périmètre)",
       ],
     ],
-    challenge: "5. Périmètre du MVP",
+    deepening: "5. Périmètre du MVP",
   },
   {
     etape: "Étape 6 — Écrans",
@@ -88,7 +88,7 @@ export const ETAPE_CHECKS = [
         "au moins 1 écran (page) sous forme de liste",
       ],
     ],
-    challenge: "6. Écrans prévus (pages Next.js)",
+    deepening: "6. Écrans prévus (pages Next.js)",
   },
   {
     etape: "Étape 7 — Expérience utilisateur (UX)",
@@ -109,7 +109,7 @@ export const ETAPE_CHECKS = [
         "le ton des textes et le style visuel visé",
       ],
     ],
-    challenge: "7. Expérience utilisateur (UX)",
+    deepening: "7. Expérience utilisateur (UX)",
   },
   {
     etape: "Étape 8 — Données & IA",
@@ -120,7 +120,7 @@ export const ETAPE_CHECKS = [
         "les données utilisées, et le rôle de l'IA (ou « aucune IA »)",
       ],
     ],
-    challenge: "8. Données & IA",
+    deepening: "8. Données & IA",
   },
   {
     etape: "Étape 9 — Critères de succès",
@@ -131,7 +131,7 @@ export const ETAPE_CHECKS = [
         "au moins 1 critère mesurable sous forme de liste",
       ],
     ],
-    challenge: "9. Critères de succès (comment on SAIT que le MVP marche)",
+    deepening: "9. Critères de succès (comment on SAIT que le MVP marche)",
   },
   {
     etape: "Étape 10 — Risques & hypothèses",
@@ -142,7 +142,7 @@ export const ETAPE_CHECKS = [
         "au moins un risque ou une hypothèse",
       ],
     ],
-    challenge: "10. Risques & hypothèses à tester",
+    deepening: "10. Risques & hypothèses à tester",
   },
   {
     etape: "Étape 11 — Stress-test (avocat du diable)",
@@ -150,10 +150,10 @@ export const ETAPE_CHECKS = [
       [
         "11. Stress-test (points challengés)",
         { items: 2 },
-        "au moins 2 objections tranchées sous forme de liste",
+        "au moins 2 tensions examinées et tranchées sous forme de liste",
       ],
     ],
-    challenge: null,
+    deepening: null,
   },
   {
     etape: "Étape 12 — Validation explicite par l'étudiant",
@@ -164,7 +164,7 @@ export const ETAPE_CHECKS = [
         "sa reformulation du projet en 3 phrases, de mémoire, en SES mots",
       ],
     ],
-    challenge: null,
+    deepening: null,
   },
 ];
 
@@ -194,13 +194,19 @@ const realBody = (body) =>
     .trim();
 const countItems = (body) =>
   body.split(/\r?\n/).filter((l) => /^\s*([-*]|\d+[.)])\s+\S/.test(l)).length;
-// Ligne « > Challenge : objection → décision » : au moins 15 caractères
-// après les deux-points, SUR LA MÊME LIGNE ([^\S\r\n] exclut le saut de ligne,
-// sinon une ligne vide « Challenge : » + la suivante passeraient à tort).
-const hasChallenge = (body) =>
+// Ligne « > Approfondissement : question creusée → effet sur la décision » :
+// au moins 15 caractères après les deux-points, SUR LA MÊME LIGNE
+// ([^\S\r\n] exclut le saut de ligne, sinon une ligne vide + la suivante
+// passeraient à tort). L'ancienne forme « > Challenge : » reste acceptée :
+// fiches commencées avant la version maïeutique.
+const hasDeepening = (body) =>
   body
     .split(/\r?\n/)
-    .some((l) => />\s*challenge[^\S\r\n]*:[^\S\r\n]*\S[^\r\n]{14,}/i.test(l));
+    .some((l) =>
+      />\s*(?:approfondissement|challenge)[^\S\r\n]*:[^\S\r\n]*\S[^\r\n]{14,}/i.test(
+        l,
+      ),
+    );
 
 export const isEtapeChecked = (sections, etapeLabel) => {
   const line = bodyOf(sections, "Progression de l'interview")
@@ -209,8 +215,8 @@ export const isEtapeChecked = (sections, etapeLabel) => {
   return !!line && /^\s*-\s*\[[xX]\]/.test(line);
 };
 
-// Erreurs d'UNE étape (sections + « > Challenge : ») — sert à la fois au
-// rapport complet (check-concept) et au verrou d'écriture (guard-edit).
+// Erreurs d'UNE étape (sections + « > Approfondissement : ») — sert à la fois
+// au rapport complet (check-concept) et au verrou d'écriture (guard-edit).
 export const etapeErrors = (sections, etape) => {
   const errors = [];
   for (const [title, rule, hint] of etape.sections) {
@@ -231,19 +237,19 @@ export const etapeErrors = (sections, etape) => {
     if (tooShort) errors.push(`section « ${title} » incomplète (${hint})`);
   }
   if (
-    etape.challenge &&
-    !hasChallenge(realBody(bodyOf(sections, etape.challenge)))
+    etape.deepening &&
+    !hasDeepening(realBody(bodyOf(sections, etape.deepening)))
   ) {
     errors.push(
-      `ligne « > Challenge : <objection> → <décision> » manquante sous « ${etape.challenge} »`,
+      `ligne « > Approfondissement : <question creusée> → <effet sur la décision> » manquante sous « ${etape.deepening} »`,
     );
   }
   return errors;
 };
 
 // Toutes les erreurs du TEXTE MVP.md (statut, progression, sections,
-// challenges) — sans les fichiers de revue. skipStatut : guard-edit valide un
-// fichier où « Statut : validé » est en cours d'écriture.
+// approfondissements) — sans les fichiers de revue. skipStatut : guard-edit
+// valide un fichier où « Statut : validé » est en cours d'écriture.
 export const conceptTextErrors = (raw, { skipStatut = false } = {}) => {
   const errors = [];
   const sections = parseSections(raw);
@@ -259,7 +265,7 @@ export const conceptTextErrors = (raw, { skipStatut = false } = {}) => {
     errors.push(
       `Interview non terminée : ${unchecked.length} étape(s) non validée(s). ` +
         `Prochaine étape : « ${unchecked[0]} » — reprends le skill /concept ` +
-        `(une question à la fois ; ne coche une étape que quand sa section est remplie ET challengée).`,
+        `(une question à la fois ; ne coche une étape que quand sa section est remplie ET approfondie).`,
     );
   }
 
@@ -338,22 +344,24 @@ export const reviewFileErrors = () => {
 };
 
 // Journal de l'interview (.concept/JOURNAL.md) : le mentor y note chaque
-// étape au fil de l'eau (décision, objection tranchée, question ouverte).
+// étape au fil de l'eau — décision dans les mots de l'étudiant, raison
+// invoquée, approfondissement réalisé, incertitude restante.
 // « Statut : validé » exige les 12 notes — sans elles, pas de trace écrite.
 export const journalFileErrors = () => {
   const path = ".concept/JOURNAL.md";
   if (!existsSync(path)) {
     return [
-      `Journal d'interview manquant : ${path} — le mentor y note chaque étape (décision, objection tranchée, question ouverte) au fil de l'interview (skill /concept).`,
+      `Journal d'interview manquant : ${path} — le mentor y note chaque étape (décision en ses mots, raison invoquée, approfondissement, incertitude restante) au fil de l'interview (skill /concept).`,
     ];
   }
   const sections = parseSections(readFileSync(path, "utf8"));
   const errors = [];
-  // Chaque note exige les 3 lignes du journal de bord. « aucune » est une
-  // réponse acceptable pour les deux dernières (honni soit le remplissage).
+  // Chaque note exige les 4 lignes du journal de bord. « aucune », « aucun »
+  // ou « non exprimée » sont des réponses acceptables quand c'est honnête —
+  // on refuse le remplissage pour remplir, pas l'absence réelle.
   const line = (body, label, min) =>
     new RegExp(
-      `${label}[^\\S\\r\\n]*:[^\\S\\r\\n]*\\S[^\\r\\n]{${min},}`,
+      `${label}[^:\\r\\n]*:[^\\S\\r\\n]*\\S[^\\r\\n]{${min},}`,
       "i",
     ).test(body);
   for (let i = 1; i <= ETAPES.length; i++) {
@@ -362,14 +370,14 @@ export const journalFileErrors = () => {
     );
     const body = title ? sections[title] : "";
     const missing = [
-      !line(body, "décision", 14) && "« - Décision : … »",
-      !line(body, "objection tranchée", 4) && "« - Objection tranchée : … »",
-      !line(body, "question restée ouverte", 4) &&
-        "« - Question restée ouverte : … »",
+      !line(body, "décision", 14) && "« - Décision (ses mots) : … »",
+      !line(body, "raison", 4) && "« - Raison invoquée : … »",
+      !line(body, "approfondissement", 4) && "« - Approfondissement : … »",
+      !line(body, "incertitude", 4) && "« - Incertitude restante : … »",
     ].filter(Boolean);
     if (missing.length > 0) {
       errors.push(
-        `Journal : note de l'étape ${i} incomplète dans ${path} — ${missing.join(", ")} attendue(s) (« aucune » est accepté pour les deux dernières).`,
+        `Journal : note de l'étape ${i} incomplète dans ${path} — ${missing.join(", ")} attendue(s) (« aucune », « aucun » ou « non exprimée » acceptés quand c'est honnête).`,
       );
     }
   }
@@ -382,10 +390,27 @@ export const syntheseMarkdown = () => {
   const raw = readFileSync(".concept/MVP.md", "utf8");
   const s = parseSections(raw);
   const pick = (title) => realBody(bodyOf(s, title));
-  const challenges = raw
+  const approfondissements = raw
     .split(/\r?\n/)
-    .filter((l) => />\s*challenge\s*:/i.test(l))
-    .map((l) => `- ${l.replace(/^>\s*challenge\s*:\s*/i, "").trim()}`);
+    .filter((l) => />\s*(?:approfondissement|challenge)\s*:/i.test(l))
+    .map(
+      (l) =>
+        `- ${l.replace(/^>\s*(?:approfondissement|challenge)\s*:\s*/i, "").trim()}`,
+    );
+  // Incertitudes restantes : relevées dans le journal — chaque ligne
+  // « Incertitude restante » qui n'est pas « aucune » remonte dans la synthèse.
+  const incertitudes = [];
+  if (existsSync(".concept/JOURNAL.md")) {
+    const journal = parseSections(readFileSync(".concept/JOURNAL.md", "utf8"));
+    for (const [title, body] of Object.entries(journal)) {
+      for (const l of body.split(/\r?\n/)) {
+        const m = /incertitude[^:\r\n]*:[^\S\r\n]*(\S[^\r\n]*)/i.exec(l);
+        if (m && !/^aucune?\b/i.test(m[1].trim())) {
+          incertitudes.push(`- ${title} : ${m[1].trim()}`);
+        }
+      }
+    }
+  }
   const verdicts = [];
   for (const axis of AXES) {
     for (const stage of ["mi-parcours", "finale"]) {
@@ -449,7 +474,7 @@ export const syntheseMarkdown = () => {
     "",
     pick("10. Risques & hypothèses à tester"),
     "",
-    "## Stress-test (objections tranchées)",
+    "## Stress-test (tensions examinées)",
     "",
     pick("11. Stress-test (points challengés)"),
     "",
@@ -457,9 +482,13 @@ export const syntheseMarkdown = () => {
     "",
     pick("12. Reformulation (test Feynman)"),
     "",
-    "## Objections tranchées pendant l'interview",
+    "## Approfondissements pendant l'interview",
     "",
-    challenges.length ? challenges.join("\n") : "_aucune_",
+    approfondissements.length ? approfondissements.join("\n") : "_aucun_",
+    "",
+    "## Incertitudes restantes (à vérifier)",
+    "",
+    incertitudes.length ? incertitudes.join("\n") : "_aucune_",
     "",
     "## Verdicts des relecteurs qualité",
     "",

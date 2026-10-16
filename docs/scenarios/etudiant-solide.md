@@ -3,9 +3,12 @@
 Personnage : l'étudiant porte **SkillSwap**, un échange de compétences entre
 étudiants IHECS. Ses réponses sont précises : chiffres, exemples, cas limites.
 
-Attendu global : l'interview arrive au bout, chaque section porte un
-`> Challenge :`, le journal est rempli, `pnpm concept:check` passe et
-`.concept/SYNTHESE.md` est généré.
+Attendu global : l'interview arrive au bout. Une réponse déjà claire et
+argumentée peut être reconnue sans objection artificielle (`> Approfondissement
+: aucun — réponse claire d'emblée` est une trace honnête) ; quand le mentor
+creuse, c'est une vraie difficulté. Chaque section porte sa ligne
+`> Approfondissement :`, le journal est rempli (4 lignes par étape), `pnpm
+concept:check` passe et `.concept/SYNTHESE.md` est généré.
 
 ## Étape 1 — Pitch
 
@@ -13,9 +16,10 @@ Attendu global : l'interview arrive au bout, chaque section porte un
 > (ex. montage vidéo) et de demander 1 compétence en échange (ex. anglais).
 > Pas d'argent : une compétence contre une compétence.
 
-Attendu : le mentor challenge en citant « en échange » ou « une compétence
-contre une compétence » — par exemple « pourquoi pas un simple groupe
-WhatsApp ? ».
+Attendu : approfondissement possible en citant « en échange » ou « une
+compétence contre une compétence » — par exemple « pourquoi pas un simple
+groupe WhatsApp ? » — ou reconnaissance directe : la réponse est complète
+et argumentée, pas besoin d'objection de pure forme.
 
 ## Étape 2 — Problème utilisateur
 
@@ -23,8 +27,9 @@ WhatsApp ? ».
 > travail faute d'aide ponctuelle (montage, anglais, Excel). Les demandes
 > postées dans le groupe WhatsApp coulent en 24 h et personne ne les retrouve.
 
-Attendu : challenge sur « coulent en 24 h » ou « personne ne les retrouve » —
-comment il le sait, combien de demandes par semaine.
+Attendu : examen de la preuve sur « coulent en 24 h » ou « personne ne les
+retrouve » — comment il le sait, combien de demandes par semaine. Fait
+observé distingué de la supposition.
 
 ## Étape 3 — Utilisateur cible
 
@@ -32,7 +37,8 @@ comment il le sait, combien de demandes par semaine.
 > service informel. Pas les profs, pas les anciens : la confiance vient du
 > fait qu'on se croise tous les jours.
 
-Attendu : challenge sur la taille du groupe ou « pourquoi pas les profs ».
+Attendu : creusage de la raison du choix (« pourquoi pas les profs ? ») —
+la réponse est dans la phrase de l'étudiant : le mentor peut la reconnaître.
 
 ## Étape 4 — Parcours clé
 
@@ -41,8 +47,8 @@ Attendu : challenge sur la taille du groupe ou « pourquoi pas les profs ».
 > 3. Le système lui propose un match quand une demande croise la sienne.
 > 4. Il confirme ; les deux reçoivent le contact de l'autre.
 
-Attendu : challenge sur le cas « aucun match ne vient » ou « demande
-inappropriée » — cas limite nommé.
+Attendu : conséquence sur le cas « aucun match ne vient » ou « demande
+inappropriée » — cas limite nommé par l'étudiant.
 
 ## Étape 5 — Périmètre
 
@@ -50,16 +56,17 @@ inappropriée » — cas limite nommé.
 > la promo ; confirmer un match. Hors périmètre : messagerie, notation,
 > paiement, application mobile, profils détaillés.
 
-Attendu : le mentor vérifie qu'au moins 1 hors-périmètre est nommé et
-challenge un indispensable (ex. « pourquoi confirmer, pas juste afficher ? »).
+Attendu : au moins 1 hors-périmètre nommé ; approfondissement par la
+conséquence (« que se passerait-il sans la confirmation ? »).
 
 ## Étape 6 — Écrans
 
 > 3 pages : `/` accueil avec les demandes du jour, `/nouvelle` formulaire
 > offre/demande, `/match/[id]` page de confirmation du match.
 
-Attendu : challenge sur un écran manquant évident (ex. « où voit-on ses
-propres demandes ? »).
+Attendu : question d'observation sur un écran manquant évident (ex. « où
+voit-on ses propres demandes ? ») — ou reconnaissance si l'étudiant l'a
+lui-même anticipé.
 
 ## Étape 7 — UX
 
@@ -70,8 +77,8 @@ propres demandes ? »).
 > « Match proposé à <prénom> ».
 > Ton : direct et encourageant, zéro jargon, tutoiement.
 
-Attendu : challenge sur l'état vide ou sur « comprend en 10 secondes » —
-comment c'est testé.
+Attendu : creusage de la preuve sur « comprend en 10 secondes » — comment
+c'est testé — ou de l'état vide.
 
 ## Étape 8 — Données & IA
 
@@ -79,8 +86,8 @@ comment c'est testé.
 > (offre, demande), stockées côté serveur. Le « match » est une règle simple :
 > même mot-clé des deux côtés.
 
-Attendu : challenge sur « même mot-clé » (synonymes ? fautes ?) — la zone
-d'ombre classique.
+Attendu : tension réelle à explorer — « même mot-clé » : synonymes ?
+fautes ? C'est la zone d'ombre classique, l'étudiant la examine.
 
 ## Étape 9 — Critères de succès
 
@@ -88,7 +95,8 @@ d'ombre classique.
 > - au moins 1 match confirmé par les deux côtés.
 > - 5 étudiants capables de ré-expliquer le concept sans aide après une visite.
 
-Attendu : challenge sur la mesurabilité (« proposés » vs « confirmés »).
+Attendu : ce qui ferait réviser — « quelle observation te ferait dire que
+ça ne marche pas ? » (ex. zéro match confirmé).
 
 ## Étape 10 — Risques & hypothèses
 
@@ -96,7 +104,9 @@ Attendu : challenge sur la mesurabilité (« proposés » vs « confirmés »).
 > demandes réelles de ma promo. Risque n°2 : demande inappropriée → pas de
 > publication automatique, relecture avant affichage dans le test.
 
-Attendu : challenge sur « relecture avant affichage » — qui relit, quel délai.
+Attendu : incertitude → enquête : « qui relit, quel délai — comment le
+vérifieras-tu ? ». Une hypothèse peut rester ouverte avec son moyen de
+vérification.
 
 ## Étape 11 — Stress-test
 
@@ -106,7 +116,8 @@ Attendu : challenge sur « relecture avant affichage » — qui relit, quel dél
 > - « Personne ne postera » → amorçage avec 5 demandes réelles et test
 >   limité à une promo de 30.
 
-Attendu : au moins 2 objections tranchées, en liste — exigé mécaniquement.
+Attendu : au moins 2 tensions examinées et tranchées, en liste — exigé
+mécaniquement. C'est l'étudiant qui tranche, pas le mentor.
 
 ## Étape 12 — Validation (test Feynman)
 

@@ -430,6 +430,52 @@ for (const fmt of ["cli", "cascade"]) {
       `${p} : « ${n.slice(0, 45)} » refusé`,
     );
   }
+
+  // Une case cochée exige sa trace d'approfondissement : simulation d'une
+  // écriture complète (old = fichier entier actuel → new = version modifiée).
+  const mvpTemplate = readFileSync(".concept/MVP.md", "utf8");
+  const etape1Done = (traceLine) =>
+    mvpTemplate
+      .replace("- [ ] Étape 1 — Pitch", "- [x] Étape 1 — Pitch")
+      .replace(
+        /## 1\. Pitch \(une phrase\)[\s\S]*?(?=## 2\.)/,
+        `## 1. Pitch (une phrase)\n\nUn site qui transforme les cours en quiz pour les étudiants IHECS.\n\n${traceLine ? `${traceLine}\n\n` : ""}`,
+      );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(".concept/MVP.md", mvpTemplate, etape1Done("")),
+    ) === 2,
+    "étape cochée sans trace d'approfondissement refusée",
+  );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(
+        ".concept/MVP.md",
+        mvpTemplate,
+        etape1Done(
+          "> Approfondissement : « qu'as-tu observé ? » → il raconte sa dernière révision.",
+        ),
+      ),
+    ) === 0,
+    "étape cochée avec « > Approfondissement : » acceptée",
+  );
+  // Transition : l'ancienne forme « > Challenge : » reste lue par le verrou
+  // (fiches commencées avant la version maïeutique).
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(
+        ".concept/MVP.md",
+        mvpTemplate,
+        etape1Done(
+          "> Challenge : « qu'as-tu observé ? » → il raconte sa dernière révision.",
+        ),
+      ),
+    ) === 0,
+    "ancienne forme « > Challenge : » acceptée (transition)",
+  );
   rmSync(loginCache, { force: true });
 
   // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.

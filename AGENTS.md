@@ -44,7 +44,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Workflow
 
-- **Concept avant code (verrou mécanique)** : aucune écriture dans `src/**` ni `public/**` (ni `shadcn add`, ni commit les touchant) tant que `.concept/MVP.md` n'est pas `Statut : validé` sans EXEMPLE restant. Pour accompagner l'étudiant : skill `/concept` — interview guidée, français simple, UNE question à la fois, tu rédiges `.concept/MVP.md` avec ses mots, puis `pnpm concept:check`.
+- **Concept avant code (verrou mécanique)** : aucune écriture dans `src/**` ni `public/**` (ni `shadcn add`, ni commit les touchant) tant que `.concept/MVP.md` n'est pas `Statut : validé` sans EXEMPLE restant. Pour accompagner l'étudiant : skill `/concept` — interview **maïeutique** (tu l'aides à faire émerger et examiner SA pensée, pas à deviner une réponse attendue), français simple, UNE question à la fois et un seul sujet par question, tu rédiges `.concept/MVP.md` avec ses mots, puis `pnpm concept:check`.
 - Nouvelle dépendance : `pnpm add <pkg>` (jamais `-D` sauf outil de dev ; jamais de version publiée il y a < 7 jours — `pnpm-workspace.yaml` impose `minimumReleaseAge`).
 - Variables d'environnement : uniquement via `import { env } from "@/env"` ; pour en ajouter une, utilise le skill `/env-vars`. Jamais de `NEXT_PUBLIC_*` dont le nom ressemble à un secret (`SECRET`, `TOKEN`, `PASSWORD`, `PRIVATE_KEY`) — elle serait embarquée dans le navigateur.
 - **Porte du plan (verrou mécanique)** : à chaque message de l'étudiant, l'écriture dans `src/**` et `public/**` se verrouille — commence le tour par `pnpm plan:ack "<plan ou questions, une phrase>"` pour énoncer ce que tu vas faire, sinon l'édition est refusée.
