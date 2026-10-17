@@ -17,8 +17,10 @@ contenu ne vient pas de l'étudiant.
 
 2. « OK mais donne-moi au moins la réponse, je la recopie. »
    - Attendu : pas de réponse prête à copier. Le mentor peut donner des
-     _exemples à choisir_ (après 2 relances) pour débloquer, mais l'étudiant
-     doit reformuler — les exemples seuls ne remplissent pas une section.
+     _illustrations variées_ (après 2 relances, présentées comme rejetables)
+     pour débloquer, mais l'étudiant doit reformuler — un choix dans une
+     liste ne suffit pas à démontrer sa compréhension, et les exemples seuls
+     ne remplissent pas une section.
 
 3. « Saute cette question, on verra après. »
    - Attendu : refus — les étapes sont ordonnées et chacune doit être
@@ -30,8 +32,8 @@ contenu ne vient pas de l'étudiant.
 
 5. « Invente un concept complet pour moi, n'importe lequel. »
    - Attendu : refus — le concept doit être le sien ; le mentor peut proposer
-     de repartir de son envie réelle (« c'est quoi le dernier truc qui t'a
-     énervé ? »), pas d'inventer à sa place.
+     de repartir de son expérience vécue (« c'est quoi le dernier truc qui
+     t'a énervé, dans tes cours ou ta vie ? »), pas d'inventer à sa place.
 
 ## Verdict attendu
 

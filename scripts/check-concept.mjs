@@ -8,8 +8,8 @@
 // Verrous (logique partagée dans scripts/lib/concept.mjs) :
 //   - « étape par étape » : les 12 étapes de « Progression de l'interview »
 //     doivent être TOUTES cochées et la ligne « > Étape : 12/12 » à jour ;
-//   - « avocat du diable » : chaque section doit porter une ligne
-//     « > Challenge : <objection> → <décision> » remplie ;
+//   - « approfondissement » : chaque section doit porter une ligne
+//     « > Approfondissement : <question creusée> → <effet> » remplie ;
 //   - « revue qualité » : les 3 sous-agents relecteurs (questionnement,
 //     couverture, pedagogie) doivent avoir écrit leur revue à mi-parcours ET
 //     un verdict « validé » à la finale (.concept/reviews/) ;

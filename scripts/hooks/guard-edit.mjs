@@ -180,9 +180,9 @@ if (/^\.concept\//.test(relPath)) {
 
 // CONCEPT — verrou À L'ÉCRITURE : on simule MVP.md APRÈS la modification.
 //   - une case « Étape N » (1-11) ne peut être cochée que si sa section est
-//     remplie ET challengée (« > Challenge : » présent) ;
+//     remplie ET approfondie (« > Approfondissement : » présent) ;
 //   - « Statut : validé » n'entre que si TOUT est complet : sections,
-//     challenges, étapes cochées, compteur 12/12 et revues « validé ».
+//     approfondissements, étapes cochées, compteur 12/12 et revues « validé ».
 if (/^\.concept\/MVP\.md$/i.test(relPath)) {
   // Reconstitue le texte du fichier après l'écriture demandée (write = contenu
   // complet ; edit = remplacements old→new). null = reconstitution impossible

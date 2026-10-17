@@ -58,8 +58,8 @@ Ces garde-fous tournent automatiquement — il faut les connaître pour comprend
 | `git commit`                             | hook `pre-commit` : `concept:check --staged` (si `src/` touché) + `lint-staged` (ESLint `--fix` + Prettier sur les fichiers du commit)                                                                                | Commit refusé si non conforme            |
 | `git commit`                             | hook `commit-msg` : commitlint                                                                                                                                                                                        | Message mal formé = commit refusé        |
 | `git push`                               | hook `pre-push` : `pnpm check` + `pnpm rules:check` + `pnpm secrets:check`                                                                                                                                            | Impossible de pousser du code cassé      |
-| Sur GitHub (push `main` / PR)            | CI : `rules:check` + `secrets:check` + `pnpm verify` + concept validé et revues code validées (dépôts étudiants) + commitlint sur les PR                                                                              | Une PR rouge ne se fusionne pas          |
-| Mise en ligne Vercel                     | `vercel.json` → `pnpm build:vercel` : concept + règles + secrets + `pnpm verify`                                                                                                                                      | Code non conforme jamais en ligne        |
+| Sur GitHub (push `main` / PR)            | CI : intégrité via le **script officiel du template** + `secrets:check` + `guards:test` + `pnpm verify` + concept validé et revues code validées (dépôts étudiants) + commitlint sur les PR                           | Une PR rouge ne se fusionne pas          |
+| Mise en ligne Vercel                     | `vercel.json` → `pnpm build:vercel` : concept + règles + secrets **en code officiel du template** + `pnpm verify`                                                                                                     | Code non conforme jamais en ligne        |
 
 ## 4. Le test manuel avant de livrer (fonctionnel)
 
@@ -90,16 +90,18 @@ L'agent **verification** (skill `/verify`) applique exactement cette procédure 
 - `npm`/`npx`/`yarn`/`bun`, `pnpm dlx`, `pnpm pkg`, `pnpm --config.*` ;
 - toute mention de `.env*`, de `IHECS_TEACHER_BYPASS` ou une variable d'environnement en préfixe.
 
+**Outils MCP (serveurs externes) :** la liste blanche des commandes ne s'applique pas aux appels MCP — le hook `guard-mcp` les filtre. Lecture seule par serveur : les outils `get`/`list`/`search`/`view`… passent ; toute action (déploiement, promotion, variables, domaines, installation de composants) est refusée et doit passer par les commandes CLI autorisées, où les verrous s'appliquent. Serveur non prévu par `.devin/mcp_config.json` : refusé.
+
 **Fichiers (outil d'édition) :** écriture hors du projet, dans `.git/`, `node_modules/`, et dans toutes les règles (`AGENTS.md`, `package.json`, `vercel.json`, configs de qualité, `.husky/`, `.github/`, `scripts/`, `.devin/`, **ce dossier `.check/`**) ; `eslint-disable`, `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error`, `ignoreBuildErrors`, `skipValidation` ; `src/` tant que le concept n'est pas validé ; `.concept/` tant que GitHub et Vercel ne sont pas connectés (dépôt étudiant).
 
 **Filets de sécurité indépendants de l'agent** (ils s'appliquent aussi aux modifications faites à la main) :
 
-| Où                           | Contrôle                                                                                                                                              |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `git commit`                 | concept (si `src/`), lint-staged, commitlint                                                                                                          |
-| `git push`                   | `pnpm check` + `pnpm rules:check` (règles identiques au template officiel) + `pnpm secrets:check`                                                     |
-| CI GitHub                    | `rules:check`, `secrets:check`, `pnpm verify`, concept et revues code validées (dépôts étudiants, sur les PR), commitlint                             |
-| Build Vercel (`vercel.json`) | concept + `rules:check` + `secrets:check` + `pnpm verify` : **un code non conforme n'est jamais mis en ligne**, même si tout le reste a été contourné |
+| Où                           | Contrôle                                                                                                                                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `git commit`                 | concept (si `src/`), lint-staged, commitlint                                                                                                                                                                                                           |
+| `git push`                   | `pnpm check` + `pnpm rules:check` (règles identiques au template officiel) + `pnpm secrets:check`                                                                                                                                                      |
+| CI GitHub                    | intégrité exécutée **par le script officiel du template** (téléchargé — la copie du dépôt ne peut pas se valider elle-même), `secrets:check`, `guards:test`, `pnpm verify`, concept et revues code validées (dépôts étudiants, sur les PR), commitlint |
+| Build Vercel (`vercel.json`) | concept + intégrité + secrets exécutés **en code officiel du template**, puis `pnpm verify` : **un code non conforme n'est jamais mis en ligne**, même si tout le reste a été contourné                                                                |
 
 **Ordre des étapes (verrouillé) :**
 

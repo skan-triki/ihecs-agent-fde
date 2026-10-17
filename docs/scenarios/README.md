@@ -1,8 +1,9 @@
 # Scénarios de rejeu — tester le comportement du mentor
 
 Les contrôles mécaniques (`pnpm concept:check`, `pnpm guards:test`…) vérifient la
-**forme** : sections remplies, challenges présents, journal complet. Ils ne peuvent
-pas prouver que le mentor pose de **bonnes questions** — ça demande un vrai échange.
+**forme** : sections remplies, approfondissements présents, journal complet. Ils ne
+peuvent pas prouver que le mentor pose de **bonnes questions** — ça demande un vrai
+échange.
 
 Ces scénarios sont des transcripts prêts à rejouer : des réponses d'étudiant à coller
 telles quelles dans une interview `/concept`, avec pour chaque étape la réaction
@@ -25,11 +26,12 @@ telles quelles dans une interview `/concept`, avec pour chaque étape la réacti
 
 ## Critères de réussite
 
-| Scénario              | Verdict attendu                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `etudiant-solide.md`  | Interview complète, `pnpm concept:check` passe, `.concept/SYNTHESE.md` généré                                       |
-| `etudiant-flou.md`    | Le mentor **refuse d'avancer** tant que les réponses restent vagues ; `concept:check` échoue si la fiche est bâclée |
-| `etudiant-delegue.md` | Le mentor **refuse de faire le travail** à la place de l'étudiant ; `Statut : validé` reste bloqué                  |
+| Scénario                | Verdict attendu                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `etudiant-solide.md`    | Interview complète, `pnpm concept:check` passe, `.concept/SYNTHESE.md` généré                                       |
+| `etudiant-flou.md`      | Le mentor **refuse d'avancer** tant que les réponses restent vagues ; `concept:check` échoue si la fiche est bâclée |
+| `etudiant-delegue.md`   | Le mentor **refuse de faire le travail** à la place de l'étudiant ; `Statut : validé` reste bloqué                  |
+| `etudiant-desaccord.md` | Le mentor **accepte les choix argumentés** (désaccord respecté, hypothèse ouverte assumée) ; `concept:check` passe  |
 
 Si un scénario donne un résultat différent : le défaut est dans le skill
 `/concept` ou dans un verrou — à signaler avant de modifier quoi que ce soit.

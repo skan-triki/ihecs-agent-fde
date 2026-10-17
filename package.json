@@ -34,7 +34,7 @@
     "guards:test": "node scripts/test-guards.mjs",
     "check": "pnpm env:check && pnpm src:check && pnpm design:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm knip",
     "verify": "pnpm check && pnpm build",
-    "build:vercel": "node scripts/check-concept.mjs --skip-template && pnpm rules:check && pnpm secrets:check && pnpm verify",
+    "build:vercel": "node scripts/build-vercel.mjs",
     "prepare": "husky"
   },
   "dependencies": {

@@ -430,6 +430,52 @@ for (const fmt of ["cli", "cascade"]) {
       `${p} : « ${n.slice(0, 45)} » refusé`,
     );
   }
+
+  // Une case cochée exige sa trace d'approfondissement : simulation d'une
+  // écriture complète (old = fichier entier actuel → new = version modifiée).
+  const mvpTemplate = readFileSync(".concept/MVP.md", "utf8");
+  const etape1Done = (traceLine) =>
+    mvpTemplate
+      .replace("- [ ] Étape 1 — Pitch", "- [x] Étape 1 — Pitch")
+      .replace(
+        /## 1\. Pitch \(une phrase\)[\s\S]*?(?=## 2\.)/,
+        `## 1. Pitch (une phrase)\n\nUn site qui transforme les cours en quiz pour les étudiants IHECS.\n\n${traceLine ? `${traceLine}\n\n` : ""}`,
+      );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(".concept/MVP.md", mvpTemplate, etape1Done("")),
+    ) === 2,
+    "étape cochée sans trace d'approfondissement refusée",
+  );
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(
+        ".concept/MVP.md",
+        mvpTemplate,
+        etape1Done(
+          "> Approfondissement : « qu'as-tu observé ? » → il raconte sa dernière révision.",
+        ),
+      ),
+    ) === 0,
+    "étape cochée avec « > Approfondissement : » acceptée",
+  );
+  // Transition : l'ancienne forme « > Challenge : » reste lue par le verrou
+  // (fiches commencées avant la version maïeutique).
+  report(
+    runHook(
+      "scripts/hooks/guard-edit.mjs",
+      editPairPayload(
+        ".concept/MVP.md",
+        mvpTemplate,
+        etape1Done(
+          "> Challenge : « qu'as-tu observé ? » → il raconte sa dernière révision.",
+        ),
+      ),
+    ) === 0,
+    "ancienne forme « > Challenge : » acceptée (transition)",
+  );
   rmSync(loginCache, { force: true });
 
   // Étape 7 : fusion faite, production non vérifiée → pas de nouvelle livraison.
@@ -709,6 +755,110 @@ writeFileSync(
 );
 report(design("tmp-design-fixture.css") === 0, "fichier cohérent accepté");
 rmSync("tmp-design-fixture.css", { force: true });
+
+// GARDE MCP — les outils des serveurs externes (vercel, shadcn…) ne passent
+// pas par la liste blanche des commandes : guard-mcp impose la lecture seule
+// par serveur. Forme Devin : tool_name « mcp_call_tool » + tool_input
+// { server_name, tool_name, arguments } ; variante « mcp__<srv>__<outil> ».
+console.log("\n=== mcp : outils externes ===");
+const mcp = (server, tool) =>
+  runHook("scripts/hooks/guard-mcp.mjs", {
+    tool_name: "mcp_call_tool",
+    tool_input: { server_name: server, tool_name: tool, arguments: {} },
+  });
+for (const t of [
+  "promote_deployment",
+  "deploy_project",
+  "create_deployment",
+  "add_env_var",
+  "update_env_var",
+  "add_domain",
+  "delete_project",
+  "rollback_deployment",
+]) {
+  report(mcp("vercel", t) === 2, `vercel/${t} (écriture) refusé`);
+}
+for (const t of [
+  "get_runtime_logs",
+  "list_deployments",
+  "get_project",
+  "inspect_deployment",
+  "search_documentation",
+]) {
+  report(mcp("vercel", t) === 0, `vercel/${t} (lecture) autorisé`);
+}
+report(
+  mcp("shadcn", "search_items_in_registries") === 0,
+  "shadcn/search (lecture) autorisé",
+);
+report(
+  mcp("shadcn", "install_component") === 2,
+  "shadcn/install refusé (l'ajout passe par la CLI, verrou concept)",
+);
+report(
+  mcp("next-devtools", "nextjs_runtime") === 0,
+  "next-devtools autorisé (diagnostic local)",
+);
+report(mcp("serveur-inconnu", "get_x") === 2, "serveur MCP inconnu refusé");
+report(
+  runHook("scripts/hooks/guard-mcp.mjs", {
+    tool_name: "mcp_call_tool",
+    tool_input: {},
+  }) === 2,
+  "appel MCP illisible refusé (fail-closed)",
+);
+report(
+  runHook("scripts/hooks/guard-mcp.mjs", {
+    tool_name: "mcp__vercel__promote_x",
+    tool_input: {},
+  }) === 2,
+  "forme mcp__serveur__outil : action refusée",
+);
+report(
+  runHook("scripts/hooks/guard-mcp.mjs", {
+    tool_name: "mcp__vercel__get_deployment",
+    tool_input: {},
+  }) === 0,
+  "forme mcp__serveur__outil : lecture autorisée",
+);
+report(
+  runHook("scripts/hooks/guard-mcp.mjs", {
+    tool_name: "mcp_list_tools",
+    tool_input: {},
+  }) === 0,
+  "mcp_list_tools autorisé",
+);
+
+// CHAÎNE OFFICIELLE — l'intégrité des règles ne peut pas dépendre de la copie
+// du dépôt : la CI et le build Vercel exécutent le contrôleur téléchargé
+// depuis le template officiel (pas `pnpm rules:check` sur la copie locale).
+console.log("\n=== libs : intégrité exécutée depuis le template ===");
+const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+report(
+  ci.includes("codeload.github.com/skan-triki/ihecs-agent-fde"),
+  "ci.yml télécharge le tarball officiel",
+);
+report(
+  /find[^\n]*check-integrity\.mjs/.test(ci) && /node "\$OFFICIAL"/.test(ci),
+  "ci.yml exécute le check-integrity officiel",
+);
+const pkgJson = JSON.parse(readFileSync("package.json", "utf8"));
+report(
+  String(pkgJson.scripts?.["build:vercel"] ?? "").includes("build-vercel.mjs"),
+  "build:vercel passe par scripts/build-vercel.mjs",
+);
+const bv = readFileSync("scripts/build-vercel.mjs", "utf8");
+report(
+  bv.includes("fetchTemplateFiles"),
+  "build-vercel.mjs télécharge le template officiel",
+);
+for (const s of [
+  "check-concept.mjs",
+  "check-integrity.mjs",
+  "secrets-check.mjs",
+]) {
+  report(bv.includes(s), `build-vercel.mjs exécute l'officiel ${s}`);
+}
 
 // Méta-tests ESLint : les gardes critiques doivent SE DÉCLENCHER sur du code
 // fautif réel — une règle cassée en silence passerait sinon inaperçue.
