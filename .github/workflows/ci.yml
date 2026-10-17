@@ -30,8 +30,18 @@ jobs:
       - name: Installation (lockfile figé)
         run: pnpm install --frozen-lockfile
 
-      - name: Intégrité des règles du cours
-        run: pnpm rules:check
+      - name: Intégrité des règles du cours (script officiel du template)
+        # Le contrôleur ne peut pas être la copie du dépôt : un étudiant qui
+        # modifierait check-integrity.mjs la ferait taire. On télécharge le
+        # template officiel et on exécute SON script — la référence comme le
+        # code viennent de la source de confiance.
+        run: |
+          curl -fsSL https://codeload.github.com/skan-triki/ihecs-agent-fde/tar.gz/refs/heads/main -o /tmp/ihecs-template.tgz
+          mkdir -p /tmp/ihecs-official
+          tar -xzf /tmp/ihecs-template.tgz -C /tmp/ihecs-official
+          OFFICIAL="$(find /tmp/ihecs-official -name check-integrity.mjs -print -quit)"
+          test -n "$OFFICIAL"
+          node "$OFFICIAL"
 
       - name: Secrets
         run: pnpm secrets:check

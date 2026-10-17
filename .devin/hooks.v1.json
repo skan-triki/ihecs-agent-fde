@@ -24,6 +24,16 @@
           "timeout": 10
         }
       ]
+    },
+    {
+      "matcher": "^(mcp_call_tool|mcp__.+)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node scripts/hooks/guard-mcp.mjs",
+          "timeout": 10
+        }
+      ]
     }
   ],
   "PostToolUse": [

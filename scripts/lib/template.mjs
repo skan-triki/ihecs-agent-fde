@@ -21,7 +21,7 @@ export const fetchTemplateFiles = async () => {
     return null;
   }
   const files = new Map();
-  const str = (o, n) => buf.toString("utf8", o, o + n).replaceAll(/\0.*$/s, "");
+  const str = (o, n) => buf.toString("utf8", o, o + n).split("\0")[0];
   let longName = null;
   for (let off = 0; off + 512 <= buf.length;) {
     const name = str(off, 100);
